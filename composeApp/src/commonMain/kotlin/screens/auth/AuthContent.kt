@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -36,6 +37,9 @@ fun AuthContent(
         })
         Task.entries.forEach { task ->
             Row(
+                modifier = Modifier.selectable(state.task == task, onClick = {
+                    onEventSent(AuthContract.Event.TaskUpdated(task))
+                }).padding(end = 16.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {

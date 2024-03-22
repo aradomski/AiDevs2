@@ -34,4 +34,28 @@ sealed class TaskResponses {
         @SerialName("msg")
         val msg: String
     ) : TaskResponses()
+
+    @Serializable
+    data class LiarResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("hint1")
+        val hint1: String,
+        @SerialName("hint2")
+        val hint2: String,
+        @SerialName("hint3")
+        val hint3: String,
+    ) : TaskResponses()
+
+    @Serializable
+    data class LiarResponseForQuestion(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("answer")
+        val answer: String,
+        ) : TaskResponses()
 }

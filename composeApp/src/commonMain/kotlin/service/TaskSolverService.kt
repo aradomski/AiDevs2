@@ -19,8 +19,9 @@ class TaskSolverService(
     suspend fun solve(
         token: String,
         task: Task,
-        response: TaskResponses
-    ): Pair<AnswerRequest, AnswerResponse> {
+        response: TaskResponses,
+        taskPayload: ExtraTaskPayload? = null,
+    ): SolvingData {
         return when (task) {
             Task.HELLO_API -> solveHelloApi(token, response as TaskResponses.HelloApiResponse)
             Task.MODERATION -> solveModeration(
@@ -28,15 +29,54 @@ class TaskSolverService(
                 response as TaskResponses.ModerationResponse
             )
 
-            Task.BLOGGER -> soleBlogger(token, task, response as TaskResponses.BloggerResponse)
+            Task.BLOGGER -> solveBlogger(token, task, response as TaskResponses.BloggerResponse)
+            Task.LIAR -> solveLiar(
+                token,
+                task,
+                response as TaskResponses.LiarResponse,
+                taskPayload as ExtraTaskPayload.Liar
+            )
         }
     }
 
-    private suspend fun soleBlogger(
+    private suspend fun solveLiar(
+        token: String,
+        task: Task,
+        liarResponse: TaskResponses.LiarResponse,
+        taskPayload: ExtraTaskPayload.Liar
+    ): SolvingData {
+        val liarResponseForQuestion = aiDevs2Service.getTask<TaskResponses.LiarResponseForQuestion>(
+            token,
+            taskPayload.question
+        )
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = "You are judge that verifies if the given answer corresponds to the given question"
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = "Return only YES or NO whenever question: \n ${taskPayload.question} \n matches given answer: \n ${liarResponseForQuestion.answer}"
+                )
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+        val answerRequest = AnswerRequest.Liar(chatCompletion.choices[0].message.content ?: "NO")
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+            IntermediateData.LiarIntermediateData(taskPayload.question, liarResponseForQuestion)
+        )
+    }
+
+    private suspend fun solveBlogger(
         token: String,
         task: Task,
         taskResponse: TaskResponses.BloggerResponse
-    ): Pair<AnswerRequest, AnswerResponse> {
+    ): SolvingData {
         val answers = taskResponse.blog.map {
             val chatCompletionRequest = ChatCompletionRequest(
                 model = ModelId("gpt-3.5-turbo"),
@@ -54,13 +94,13 @@ class TaskSolverService(
             openAI.chatCompletion(chatCompletionRequest)
         }.mapNotNull { it.choices[0].message.content }
         val answerRequest = AnswerRequest.Blogger(answers)
-        return answerRequest to aiDevs2Service.answer(token, answerRequest)
+        return SolvingData(answerRequest, aiDevs2Service.answer(token, answerRequest))
     }
 
     private suspend fun solveModeration(
         token: String,
         taskResponse: TaskResponses.ModerationResponse
-    ): Pair<AnswerRequest, AnswerResponse> {
+    ): SolvingData {
         val moderationRequest = moderationRequest {
             input = taskResponse.input
             model = ModerationModel.Latest
@@ -75,14 +115,32 @@ class TaskSolverService(
 
 
         val answerRequest = AnswerRequest.Moderation(answers)
-        return answerRequest to aiDevs2Service.answer(token, answerRequest)
+        return SolvingData(answerRequest, aiDevs2Service.answer(token, answerRequest))
     }
 
     private suspend fun solveHelloApi(
         token: String,
         taskResponse: TaskResponses.HelloApiResponse
-    ): Pair<AnswerRequest, AnswerResponse> {
+    ): SolvingData {
         val answerRequest = AnswerRequest.HelloApi(taskResponse.cookie)
-        return answerRequest to aiDevs2Service.answer(token, answerRequest)
+        return SolvingData(answerRequest, aiDevs2Service.answer(token, answerRequest))
     }
 }
+
+sealed interface ExtraTaskPayload {
+    data class Liar(val question: String) :
+        ExtraTaskPayload
+}
+
+sealed interface IntermediateData {
+    data class LiarIntermediateData(
+        val question: String,
+        val answer: TaskResponses.LiarResponseForQuestion
+    ) : IntermediateData
+}
+
+data class SolvingData(
+    val answerRequest: AnswerRequest,
+    val answerResponse: AnswerResponse,
+    val intermediateData: IntermediateData? = null
+)

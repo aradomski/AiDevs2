@@ -24,6 +24,7 @@ class TaskScreenModel(
                         Task.HELLO_API -> getTaskContent<TaskResponses.HelloApiResponse>()
                         Task.MODERATION -> getTaskContent<TaskResponses.ModerationResponse>()
                         Task.BLOGGER -> getTaskContent<TaskResponses.BloggerResponse>()
+                        Task.LIAR ->getTaskContent<TaskResponses.LiarResponse>()
                     }
                 }
             }

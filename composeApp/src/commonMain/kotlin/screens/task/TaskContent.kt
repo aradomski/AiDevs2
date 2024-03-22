@@ -18,6 +18,7 @@ import api.model.task.TaskResponses
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import composables.AiDevsAppBar
 import kotlinx.coroutines.flow.Flow
 import screens.answers.AnswerScreen
 
@@ -28,40 +29,45 @@ fun TaskContent(
     onEventSent: (event: TaskContract.Event) -> Unit,
 ) {
     val navigator = LocalNavigator.currentOrThrow
-    Scaffold(
-        topBar = {
-            TopAppBar {
-                Icon(
-                    modifier = Modifier.clickable { navigator.pop() },
-                    imageVector = Icons.AutoMirrored.Default.ArrowBack,
-                    contentDescription = null
-                )
-                Text("Back")
-            }
+    Scaffold(topBar = {
+        AiDevsAppBar{
+            navigator.pop()
         }
-    ) {
+    }) {
         Column(modifier = Modifier.padding(16.dp).padding(it)) {
             OutlinedButton(onClick = { onEventSent(TaskContract.Event.GrabTask) }) {
                 Text("Grab task content")
             }
-
             AnimatedVisibility(state.taskContent != null) {
-                when (state.taskContent) {
-                    is TaskResponses.HelloApiResponse -> HelloApi(
-                        state,
-                        state.taskContent,
-                        navigator
-                    )
+                Column {
+                    when (state.taskContent) {
+                        is TaskResponses.HelloApiResponse -> HelloApi(
+                            state, state.taskContent
+                        )
 
-                    is TaskResponses.BloggerResponse -> Blogger(state, state.taskContent, navigator)
-                    is TaskResponses.ModerationResponse -> Moderation(
-                        state,
-                        state.taskContent,
-                        navigator
-                    )
+                        is TaskResponses.BloggerResponse -> Blogger(
+                            state, state.taskContent
+                        )
 
-                    null -> Text("no task content yet")
+                        is TaskResponses.ModerationResponse -> Moderation(
+                            state, state.taskContent
+                        )
 
+                        is TaskResponses.LiarResponse -> Liar(state, state.taskContent, navigator)
+                        is TaskResponses.LiarResponseForQuestion -> {/*TODO*/
+                        }
+
+                        null -> Text("no task content yet")
+
+                    }
+
+                    state.taskContent?.let {
+                        OutlinedButton(onClick = {
+                            navigator.push(AnswerScreen(state.task!!, state.token!!, it))
+                        }) {
+                            Text("Solve task")
+                        }
+                    }
                 }
             }
         }
@@ -69,57 +75,42 @@ fun TaskContent(
 }
 
 @Composable
-fun Moderation(
-    state: TaskContract.State,
-    taskContent: TaskResponses.ModerationResponse,
-    navigator: Navigator
+fun Liar(
+    state: TaskContract.State, taskContent: TaskResponses.LiarResponse, navigator: Navigator
 ) {
-    Column {
-        Text("Code: ${taskContent.code}")
-        Text("Message: ${taskContent.msg}")
-        Text("Input: ")
-        taskContent.input.forEach { Text(it) }
-        OutlinedButton(onClick = {
-            navigator.push(AnswerScreen(state.task!!, state.token!!, taskContent))
-        }) {
-            Text("Solve task")
-        }
-    }
+    Text("Code: ${taskContent.code}")
+    Text("Message: ${taskContent.msg}")
+    Text("Hints: ")
+    Text(taskContent.hint1)
+    Text(taskContent.hint2)
+    Text(taskContent.hint3)
+}
+
+@Composable
+fun Moderation(
+    state: TaskContract.State, taskContent: TaskResponses.ModerationResponse
+) {
+    Text("Code: ${taskContent.code}")
+    Text("Message: ${taskContent.msg}")
+    Text("Input: ")
+    taskContent.input.forEach { Text(it) }
 }
 
 @Composable
 fun Blogger(
-    state: TaskContract.State,
-    taskContent: TaskResponses.BloggerResponse,
-    navigator: Navigator
+    state: TaskContract.State, taskContent: TaskResponses.BloggerResponse
 ) {
-    Column {
-        Text("Code: ${taskContent.code}")
-        Text("Message: ${taskContent.msg}")
-        Text("Blog:")
-        taskContent.blog.forEach { Text(it) }
-        OutlinedButton(onClick = {
-            navigator.push(AnswerScreen(state.task!!, state.token!!, taskContent))
-        }) {
-            Text("Solve task")
-        }
-    }
+    Text("Code: ${taskContent.code}")
+    Text("Message: ${taskContent.msg}")
+    Text("Blog:")
+    taskContent.blog.forEach { Text(it) }
 }
 
 @Composable
 fun HelloApi(
-    state: TaskContract.State,
-    taskContent: TaskResponses.HelloApiResponse,
-    navigator: Navigator
+    state: TaskContract.State, taskContent: TaskResponses.HelloApiResponse
 ) {
-    Column {
-        Text("Code: ${taskContent.code}")
-        Text("Message: ${taskContent.msg}")
-        Text("Cookie: ${taskContent.cookie}")
-        OutlinedButton(onClick = {
-            navigator.push(AnswerScreen(state.task!!, state.token!!, taskContent))
-        }) {
-            Text("Solve task")
-        }
-    }
+    Text("Code: ${taskContent.code}")
+    Text("Message: ${taskContent.msg}")
+    Text("Cookie: ${taskContent.cookie}")
 }

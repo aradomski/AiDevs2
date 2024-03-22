@@ -21,6 +21,12 @@ sealed class AnswerRequest {
         @SerialName("answer")
         val answer: List<String>
     ) : AnswerRequest()
+
+    @Serializable
+    data class Liar(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
 }
 
 

@@ -3,6 +3,7 @@ package di
 import OPEN_AI_KEY
 import api.AiDevs2Api
 import com.aallam.openai.api.http.Timeout
+import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
@@ -86,6 +87,10 @@ val ktorModule = module {
 val openAiClientModule = module {
     single {
         OpenAI(
+            logging = LoggingConfig(
+                logLevel = com.aallam.openai.api.logging.LogLevel.All,
+                logger = com.aallam.openai.api.logging.Logger.Simple,
+            ),
             token = OPEN_AI_KEY,
             timeout = Timeout(socket = 60.seconds),
             // additional configurations...
