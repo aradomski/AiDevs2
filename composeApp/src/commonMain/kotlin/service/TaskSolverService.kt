@@ -7,6 +7,8 @@ import api.model.task.TaskResponses
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
+import com.aallam.openai.api.embedding.EmbeddingRequest
+import com.aallam.openai.api.embedding.EmbeddingResponse
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.api.moderation.ModerationModel
 import com.aallam.openai.api.moderation.moderationRequest
@@ -36,7 +38,97 @@ class TaskSolverService(
                 response as TaskResponses.LiarResponse,
                 taskPayload as ExtraTaskPayload.Liar
             )
+
+            Task.INPROMPT -> solveInprompt(
+                token,
+                task,
+                response as TaskResponses.InpromptResponse,
+            )
+
+            Task.EMBEDDING -> solveEmbedding(
+                token,
+                task,
+                response as TaskResponses.EmbeddingResponse
+            )
         }
+    }
+
+    private suspend fun solveEmbedding(
+        token: String,
+        task: Task,
+        embeddingResponse: TaskResponses.EmbeddingResponse
+    ): SolvingData {
+        val embeddingRequest = EmbeddingRequest(
+            model = ModelId("text-embedding-ada-002"),
+            input = listOf("Hawaiian pizza")
+        )
+        val embeddings = openAI.embeddings(embeddingRequest)
+
+        val answerRequest =
+            AnswerRequest.Embedding(embeddings.embeddings.map { it.embedding }.flatten())
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+            IntermediateData.EmbeddingIntermediateData(embeddings)
+        )
+    }
+
+    private suspend fun solveInprompt(
+        token: String,
+        task: Task,
+        inpromptResponse: TaskResponses.InpromptResponse
+    ): SolvingData {
+        val chatCompletionRequestName = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = "You find names in given sentences. Respond only with found name"
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = inpromptResponse.question
+                )
+            )
+        )
+        val chatCompletionName = openAI.chatCompletion(chatCompletionRequestName)
+        val name =
+            chatCompletionName.choices.getOrNull(0)?.message?.content
+                ?: "no names was found"
+
+        val filteredFacts = inpromptResponse.input.filter { it.contains(name) }
+
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = "You answer questions based on given facts\n ######## \n ${
+                        filteredFacts.joinToString(
+                            separator = "\n"
+                        )
+                    }"
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = inpromptResponse.question
+                )
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+        val answerRequest = chatCompletion.choices[0].message.content?.let {
+            AnswerRequest.Inprompt(it)
+        } ?: AnswerRequest.Inprompt("Something failed :(")
+
+
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+            IntermediateData.InpromptIntermediateData(
+                foundName = name
+            )
+        )
     }
 
     private suspend fun solveLiar(
@@ -136,6 +228,14 @@ sealed interface IntermediateData {
     data class LiarIntermediateData(
         val question: String,
         val answer: TaskResponses.LiarResponseForQuestion
+    ) : IntermediateData
+
+    data class InpromptIntermediateData(
+        val foundName: String,
+    ) : IntermediateData
+
+    data class EmbeddingIntermediateData(
+        val embeddingResponse: EmbeddingResponse,
     ) : IntermediateData
 }
 

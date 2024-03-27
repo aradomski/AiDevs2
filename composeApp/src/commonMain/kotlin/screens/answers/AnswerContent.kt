@@ -90,6 +90,16 @@ fun IntermediateDataView(intermediateData: IntermediateData) {
             Text(intermediateData.question)
             Text(intermediateData.answer.toString())
         }
+
+        is IntermediateData.InpromptIntermediateData -> {
+            Text(intermediateData.foundName)
+        }
+
+        is IntermediateData.EmbeddingIntermediateData -> {
+            intermediateData.embeddingResponse.embeddings.forEach {
+                Text(it.toString())
+            }
+        }
     }
 }
 

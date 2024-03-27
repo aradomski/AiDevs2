@@ -57,5 +57,32 @@ sealed class TaskResponses {
         val msg: String,
         @SerialName("answer")
         val answer: String,
-        ) : TaskResponses()
+    ) : TaskResponses()
+
+    @Serializable
+    data class InpromptResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("input")
+        val input: List<String>,
+        @SerialName("question")
+        val question: String,
+    ) : TaskResponses()
+
+    @Serializable
+    data class EmbeddingResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("hint1")
+        val hint1: String,
+        @SerialName("hint2")
+        val hint2: String,
+        @SerialName("hint3")
+        val hint3: String,
+    ) : TaskResponses()
+
 }

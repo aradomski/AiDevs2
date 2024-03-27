@@ -27,6 +27,19 @@ sealed class AnswerRequest {
         @SerialName("answer")
         val answer: String
     ) : AnswerRequest()
+
+    @Serializable
+    data class Inprompt(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
+
+
+    @Serializable
+    data class Embedding(
+        @SerialName("answer")
+        val answer: List<Double>
+    ) : AnswerRequest()
 }
 
 

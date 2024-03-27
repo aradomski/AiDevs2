@@ -3,4 +3,6 @@ enum class Task(val taskName: String) {
     MODERATION("moderation"),
     BLOGGER("blogger"),
     LIAR("liar"),
+    INPROMPT("inprompt"),
+    EMBEDDING("embedding"),
 }
