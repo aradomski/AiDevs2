@@ -27,6 +27,7 @@ class TaskScreenModel(
                         Task.LIAR -> getTaskContent<TaskResponses.LiarResponse>()
                         Task.INPROMPT -> getTaskContent<TaskResponses.InpromptResponse>()
                         Task.EMBEDDING -> getTaskContent<TaskResponses.EmbeddingResponse>()
+                        Task.WHISPER -> getTaskContent<TaskResponses.WhisperResponse>()
                     }
                 }
             }

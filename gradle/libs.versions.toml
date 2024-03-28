@@ -29,6 +29,9 @@ kotlinx-coroutines = "1.8.1-Beta"
 openai-client= "3.7.0"
 
 napier = "2.6.1"
+
+okio= "3.9.0"
+
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -68,6 +71,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 
+okio = {module="com.squareup.okio:okio",version.ref="okio"}
 
 openai-client= {module="com.aallam.openai:openai-client", version.ref="openai-client"}
 [plugins]

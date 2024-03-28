@@ -17,16 +17,19 @@ import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.StringQualifier
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 import screens.answers.AnswerScreenModel
 import screens.auth.AuthScreenModel
 import screens.task.TaskScreenModel
 import service.AiDevs2Service
+import service.FileDownloader
 import service.TaskSolverService
 import kotlin.time.Duration.Companion.seconds
 
 private const val AI_DEVS_API = "AiDevsApi"
+private const val FILE_DOWNLOADER_CLIENT = "FileDownloaderClient"
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =
     startKoin {
         appDeclaration()
@@ -55,10 +58,18 @@ val servicesModule = module {
 }
 
 val apiModule = module {
-    singleOf(::AiDevs2Api)
+    single {
+        AiDevs2Api(
+            get(qualifier = StringQualifier(AI_DEVS_API)),
+            get(qualifier = StringQualifier(AI_DEVS_API))
+        )
+    }
+    single {
+        FileDownloader(get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)))
+    }
 }
 val ktorModule = module {
-    single {
+    single(qualifier = StringQualifier(AI_DEVS_API)) {
         HttpClient {
             install(HttpTimeout) {
                 requestTimeoutMillis = 1000 * 60 * 2
@@ -82,7 +93,23 @@ val ktorModule = module {
             }
         }
     }
-    single { "https://tasks.aidevs.pl" }
+    single(qualifier = StringQualifier(AI_DEVS_API)) { "https://tasks.aidevs.pl" }
+
+    single(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)) {
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 1000 * 60 * 2
+            }
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        Napier.v("HTTP Client", null, message)
+                    }
+                }
+                level = LogLevel.ALL
+            }
+        }
+    }
 }
 val openAiClientModule = module {
     single {

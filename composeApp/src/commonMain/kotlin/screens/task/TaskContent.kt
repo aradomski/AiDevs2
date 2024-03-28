@@ -77,12 +77,19 @@ fun TaskContent(
                             state, state.taskContent
                         )
 
+                        is TaskResponses.WhisperResponse -> Whisper(state, state.taskContent)
                         null -> Text("no task content yet")
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Whisper(state: TaskContract.State, taskContent: TaskResponses.WhisperResponse) {
+    Text(taskContent.msg)
+    Text(taskContent.hint)
 }
 
 @Composable

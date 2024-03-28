@@ -85,4 +85,14 @@ sealed class TaskResponses {
         val hint3: String,
     ) : TaskResponses()
 
+    @Serializable
+    data class WhisperResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("hint")
+        val hint: String,
+    ) : TaskResponses()
+
 }

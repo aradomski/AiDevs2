@@ -71,6 +71,7 @@ kotlin {
             implementation("co.touchlab:stately-concurrency:2.0.5")
 
             implementation(libs.openai.client)
+            implementation(libs.okio)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)

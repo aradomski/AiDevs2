@@ -100,6 +100,12 @@ fun IntermediateDataView(intermediateData: IntermediateData) {
                 Text(it.toString())
             }
         }
+
+        is IntermediateData.WhisperIntermediateData -> {
+            Text(intermediateData.transcription.duration.toString())
+            Text(intermediateData.transcription.language.toString())
+            Text(intermediateData.transcription.text)
+        }
     }
 }
 

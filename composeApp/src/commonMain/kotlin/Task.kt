@@ -5,4 +5,5 @@ enum class Task(val taskName: String) {
     LIAR("liar"),
     INPROMPT("inprompt"),
     EMBEDDING("embedding"),
+    WHISPER("whisper"),
 }

@@ -4,19 +4,24 @@ import Task
 import api.model.answer.AnswerRequest
 import api.model.answer.AnswerResponse
 import api.model.task.TaskResponses
+import com.aallam.openai.api.audio.Transcription
+import com.aallam.openai.api.audio.TranscriptionRequest
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.embedding.EmbeddingRequest
 import com.aallam.openai.api.embedding.EmbeddingResponse
+import com.aallam.openai.api.file.fileSource
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.api.moderation.ModerationModel
 import com.aallam.openai.api.moderation.moderationRequest
 import com.aallam.openai.client.OpenAI
+import okio.Buffer
 
 class TaskSolverService(
     private val openAI: OpenAI,
-    private val aiDevs2Service: AiDevs2Service
+    private val aiDevs2Service: AiDevs2Service,
+    private val fileDownloader: FileDownloader
 ) {
     suspend fun solve(
         token: String,
@@ -50,7 +55,54 @@ class TaskSolverService(
                 task,
                 response as TaskResponses.EmbeddingResponse
             )
+
+            Task.WHISPER -> solveWhisper(token, task, response as TaskResponses.WhisperResponse)
         }
+    }
+
+    private suspend fun solveWhisper(
+        token: String,
+        task: Task,
+        whisperResponse: TaskResponses.WhisperResponse
+    ): SolvingData {
+        val chatCompletionRequestUrl = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = "You find urls in given sentences. Respond only with found url"
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = whisperResponse.msg
+                )
+            )
+        )
+        val chatCompletionUrl = openAI.chatCompletion(chatCompletionRequestUrl)
+        val url = chatCompletionUrl.choices.getOrNull(0)?.message?.content
+            ?: "no urls was found"
+
+
+        val downloadedFile = fileDownloader.downloadFile(url)
+
+
+        val transcriptionRequest =
+            TranscriptionRequest(model = ModelId("whisper-1"), audio = fileSource {
+                val buffer = Buffer()
+                name = "file.mp3"
+                source = buffer.write(downloadedFile)
+            })
+        val transcription = openAI.transcription(transcriptionRequest)
+
+
+        val answerRequest =
+            AnswerRequest.Whisper(transcription.text)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+            IntermediateData.WhisperIntermediateData(transcription)
+        )
+
     }
 
     private suspend fun solveEmbedding(
@@ -236,6 +288,10 @@ sealed interface IntermediateData {
 
     data class EmbeddingIntermediateData(
         val embeddingResponse: EmbeddingResponse,
+    ) : IntermediateData
+
+    data class WhisperIntermediateData(
+        val transcription: Transcription
     ) : IntermediateData
 }
 

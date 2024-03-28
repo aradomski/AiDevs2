@@ -40,6 +40,13 @@ sealed class AnswerRequest {
         @SerialName("answer")
         val answer: List<Double>
     ) : AnswerRequest()
+
+
+    @Serializable
+    data class Whisper(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
 }
 
 
