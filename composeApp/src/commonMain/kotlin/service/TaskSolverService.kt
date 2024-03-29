@@ -79,35 +79,9 @@ class TaskSolverService(
         task: Task,
         rodoResponse: TaskResponses.RodoResponse
     ): SolvingData {
-//        val request = chatCompletionRequest {
-//            model = ModelId("gpt-3.5-turbo")
-//            messages = mutableListOf(
-//                ChatMessage(
-//                    role = ChatRole.System,
-//                    content = """Your role is to anonymize data. You only return anonymized version of user input, nothing else.
-//                        | You anonymize key informations like name,surname,city, profession, country
-//                        | Use given placeholders for data to anonymize input:
-//                        | name - %imie%
-//                        | surname - %nazwisko%
-//                        | city - %miasto%
-//                        | profession - %zawod%
-//                        | country - %kraj%
-//                        |
-//                        |
-//                        | Do not analyze user input, only replace sensitive informations with given placeholders.
-//                        | Note that some proffesions might contain more than one word
-//                    """.trimMargin()
-//                ),
-//                ChatMessage(
-//                    role = ChatRole.User,
-//                    content = rodoResponse.msg
-//                )
-//            )
-//        }
-//        val chatCompletion = openAI.chatCompletion(request)
-//        chatCompletion.choices[0].message.content?.let {
-            val answerRequest =
-                AnswerRequest.Rodo("""Your role is to anonymize data. You only return anonymized version of user input, nothing else.
+        val answerRequest =
+            AnswerRequest.Rodo(
+                """Your role is to anonymize data. You only return anonymized version of user input, nothing else.
                         | You anonymize key informations like name,surname,city, profession, country
                         | Use given placeholders for data to anonymize input:
                         | name - %imie%
@@ -118,13 +92,12 @@ class TaskSolverService(
                         | 
                         | 
                         | Do not analyze user input, only replace sensitive informations with given placeholders.
-                        | Note that some proffesions might contain more than one word """.trimMargin())
-            return SolvingData(
-                answerRequest,
-                aiDevs2Service.answer(token, answerRequest),
+                        | Note that some proffesions might contain more than one word.""".trimMargin()
             )
-//        }
-//        throw IllegalStateException("  chatCompletion.choices[0].message.content? is null")
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
     }
 
     private suspend fun solveFunctions(

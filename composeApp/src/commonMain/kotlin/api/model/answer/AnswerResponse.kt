@@ -13,5 +13,7 @@ data class AnswerResponse(
     @SerialName("note")
     val note: String? = null,
     @SerialName("reply")
-    val reply: String? = null
+    val reply: String? = null,
+    @SerialName("Additional papers")
+    val additionalPapers: String? = null,
 )
