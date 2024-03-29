@@ -6,4 +6,6 @@ enum class Task(val taskName: String) {
     INPROMPT("inprompt"),
     EMBEDDING("embedding"),
     WHISPER("whisper"),
+    FUNCTIONS("functions"),
+    RODO("rodo"),
 }

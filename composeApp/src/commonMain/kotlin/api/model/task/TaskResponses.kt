@@ -95,4 +95,28 @@ sealed class TaskResponses {
         val hint: String,
     ) : TaskResponses()
 
+    @Serializable
+    data class FunctionsResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("hint1")
+        val hint1: String,
+    ) : TaskResponses()
+
+    @Serializable
+    data class RodoResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("hint1")
+        val hint1: String,
+        @SerialName("hint2")
+        val hint2: String,
+        @SerialName("hint3")
+        val hint3: String,
+    ) : TaskResponses()
+
 }

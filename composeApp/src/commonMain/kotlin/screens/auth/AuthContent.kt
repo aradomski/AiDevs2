@@ -3,19 +3,32 @@ package screens.auth
 import Task
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.capitalize
+import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import kotlinx.coroutines.flow.Flow
@@ -35,18 +48,34 @@ fun AuthContent(
         }, label = {
             Text("Input your token")
         })
-        Task.entries.forEach { task ->
-            Row(
-                modifier = Modifier.selectable(state.task == task, onClick = {
+        LazyVerticalGrid(
+            modifier = Modifier.padding(vertical = 16.dp),
+            columns = GridCells.Adaptive(128.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(Task.entries) { task ->
+                Card(modifier = Modifier.height(128.dp), onClick = {
                     onEventSent(AuthContract.Event.TaskUpdated(task))
-                }).padding(end = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(state.task == task, onClick = {
-                    onEventSent(AuthContract.Event.TaskUpdated(task))
-                })
-                Text("$task")
+                }) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            modifier = Modifier.padding(16.dp).align(Alignment.Center),
+                            text = task.taskName.capitalize(Locale.current),
+                            style = TextStyle(fontSize = 20.sp),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1
+                        )
+                        if (state.task == task) {
+                            Icon(
+                                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
+                                imageVector = Icons.Default.Check,
+                                tint = Color.Green,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }
             }
         }
 

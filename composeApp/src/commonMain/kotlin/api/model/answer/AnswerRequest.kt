@@ -1,5 +1,6 @@
 package api.model.answer
 
+import com.aallam.openai.api.chat.FunctionTool
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -44,6 +45,18 @@ sealed class AnswerRequest {
 
     @Serializable
     data class Whisper(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
+
+    @Serializable
+    data class Functions(
+        @SerialName("answer")
+        val answer: FunctionTool
+    ) : AnswerRequest()
+
+    @Serializable
+    data class Rodo(
         @SerialName("answer")
         val answer: String
     ) : AnswerRequest()

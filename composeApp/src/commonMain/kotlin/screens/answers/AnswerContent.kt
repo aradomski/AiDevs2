@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import api.model.answer.AnswerRequest
 import api.model.answer.AnswerResponse
 import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import composables.AiDevsAppBar
 import kotlinx.coroutines.flow.Flow
@@ -64,7 +65,7 @@ fun AnswerContent(
                 }
 
                 item {
-                    LaunchButton(onEventSent)
+                    LaunchButton(onEventSent, state.answerResponse != null, navigator)
                 }
                 if (state.intermediateData != null) {
                     item {
@@ -106,15 +107,32 @@ fun IntermediateDataView(intermediateData: IntermediateData) {
             Text(intermediateData.transcription.language.toString())
             Text(intermediateData.transcription.text)
         }
+
+        is IntermediateData.FunctionsIntermediateData -> {
+            Text(intermediateData.functionParametersDefinition)
+        }
     }
 }
 
 @Composable
-fun LaunchButton(onEventSent: (event: AnswerContract.Event) -> Unit) {
-    OutlinedButton(onClick = {
-        onEventSent(AnswerContract.Event.LaunchSolution)
-    }) {
-        Text("Perform solving the task")
+fun LaunchButton(
+    onEventSent: (event: AnswerContract.Event) -> Unit,
+    shouldDisplayBack: Boolean,
+    navigator: Navigator
+) {
+    AnimatedVisibility(!shouldDisplayBack) {
+        OutlinedButton(onClick = {
+            onEventSent(AnswerContract.Event.LaunchSolution)
+        }) {
+            Text("Perform solving the task")
+        }
+    }
+    AnimatedVisibility(shouldDisplayBack) {
+        OutlinedButton(onClick = {
+            navigator.popUntilRoot()
+        }) {
+            Text("Back to beginning ")
+        }
     }
 }
 

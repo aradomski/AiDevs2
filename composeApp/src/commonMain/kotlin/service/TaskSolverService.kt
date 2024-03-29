@@ -9,6 +9,9 @@ import com.aallam.openai.api.audio.TranscriptionRequest
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
+import com.aallam.openai.api.chat.FunctionTool
+import com.aallam.openai.api.chat.ToolChoice
+import com.aallam.openai.api.chat.chatCompletionRequest
 import com.aallam.openai.api.embedding.EmbeddingRequest
 import com.aallam.openai.api.embedding.EmbeddingResponse
 import com.aallam.openai.api.file.fileSource
@@ -16,6 +19,10 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.api.moderation.ModerationModel
 import com.aallam.openai.api.moderation.moderationRequest
 import com.aallam.openai.client.OpenAI
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import okio.Buffer
 
 class TaskSolverService(
@@ -57,7 +64,122 @@ class TaskSolverService(
             )
 
             Task.WHISPER -> solveWhisper(token, task, response as TaskResponses.WhisperResponse)
+            Task.FUNCTIONS -> solveFunctions(
+                token,
+                task,
+                response as TaskResponses.FunctionsResponse
+            )
+
+            Task.RODO -> solveRodo(token, task, response as TaskResponses.RodoResponse)
         }
+    }
+
+    private suspend fun solveRodo(
+        token: String,
+        task: Task,
+        rodoResponse: TaskResponses.RodoResponse
+    ): SolvingData {
+//        val request = chatCompletionRequest {
+//            model = ModelId("gpt-3.5-turbo")
+//            messages = mutableListOf(
+//                ChatMessage(
+//                    role = ChatRole.System,
+//                    content = """Your role is to anonymize data. You only return anonymized version of user input, nothing else.
+//                        | You anonymize key informations like name,surname,city, profession, country
+//                        | Use given placeholders for data to anonymize input:
+//                        | name - %imie%
+//                        | surname - %nazwisko%
+//                        | city - %miasto%
+//                        | profession - %zawod%
+//                        | country - %kraj%
+//                        |
+//                        |
+//                        | Do not analyze user input, only replace sensitive informations with given placeholders.
+//                        | Note that some proffesions might contain more than one word
+//                    """.trimMargin()
+//                ),
+//                ChatMessage(
+//                    role = ChatRole.User,
+//                    content = rodoResponse.msg
+//                )
+//            )
+//        }
+//        val chatCompletion = openAI.chatCompletion(request)
+//        chatCompletion.choices[0].message.content?.let {
+            val answerRequest =
+                AnswerRequest.Rodo("""Your role is to anonymize data. You only return anonymized version of user input, nothing else.
+                        | You anonymize key informations like name,surname,city, profession, country
+                        | Use given placeholders for data to anonymize input:
+                        | name - %imie%
+                        | surname - %nazwisko%
+                        | city - %miasto%
+                        | profession - %zawod%
+                        | country - %kraj%
+                        | 
+                        | 
+                        | Do not analyze user input, only replace sensitive informations with given placeholders.
+                        | Note that some proffesions might contain more than one word """.trimMargin())
+            return SolvingData(
+                answerRequest,
+                aiDevs2Service.answer(token, answerRequest),
+            )
+//        }
+//        throw IllegalStateException("  chatCompletion.choices[0].message.content? is null")
+    }
+
+    private suspend fun solveFunctions(
+        token: String,
+        task: Task,
+        functionsResponse: TaskResponses.FunctionsResponse
+    ): SolvingData {
+        val request = chatCompletionRequest {
+            model = ModelId("gpt-3.5-turbo")
+            messages = mutableListOf(
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = ""
+                )
+            )
+            tools {
+                function(
+                    name = "addUser",
+                    description = "Adds user",
+                ) {
+                    put("type", "object")
+                    putJsonObject("properties") {
+                        putJsonObject("name") {
+                            put("type", "string")
+                            put("description", "Name of the person")
+                        }
+                        putJsonObject("surname") {
+                            put("type", "string")
+                            put("description", "Surname of the person")
+                        }
+                        putJsonObject("year") {
+                            put("type", "integer")
+                            put("description", "Year of birth of the person")
+                        }
+                    }
+                    putJsonArray("required") {
+                        add("name")
+                        add("surname")
+                        add("year")
+                    }
+                }
+            }
+            toolChoice = ToolChoice.Auto // or ToolChoice.function("currentWeather")
+        }
+        val tool: FunctionTool? = request.tools?.getOrNull(0)?.function
+        tool?.let {
+            val answerRequest =
+                AnswerRequest.Functions(it)
+            return SolvingData(
+                answerRequest,
+                aiDevs2Service.answer(token, answerRequest),
+                IntermediateData.FunctionsIntermediateData(it.toString())
+            )
+        }
+        throw IllegalStateException("Somehow tool: FunctionTool is null")
     }
 
     private suspend fun solveWhisper(
@@ -102,7 +224,6 @@ class TaskSolverService(
             aiDevs2Service.answer(token, answerRequest),
             IntermediateData.WhisperIntermediateData(transcription)
         )
-
     }
 
     private suspend fun solveEmbedding(
@@ -292,6 +413,10 @@ sealed interface IntermediateData {
 
     data class WhisperIntermediateData(
         val transcription: Transcription
+    ) : IntermediateData
+
+    data class FunctionsIntermediateData(
+        val functionParametersDefinition: String
     ) : IntermediateData
 }
 

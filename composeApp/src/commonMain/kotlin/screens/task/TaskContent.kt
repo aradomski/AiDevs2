@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.OutlinedButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -78,12 +78,30 @@ fun TaskContent(
                         )
 
                         is TaskResponses.WhisperResponse -> Whisper(state, state.taskContent)
+
+                        is TaskResponses.FunctionsResponse -> Functions(state, state.taskContent)
+                        is TaskResponses.RodoResponse -> Rodo(state, state.taskContent)
                         null -> Text("no task content yet")
+
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Rodo(state: TaskContract.State, taskContent: TaskResponses.RodoResponse) {
+    Text(taskContent.msg)
+    Text(taskContent.hint1)
+    Text(taskContent.hint2)
+    Text(taskContent.hint3)
+}
+
+@Composable
+fun Functions(state: TaskContract.State, taskContent: TaskResponses.FunctionsResponse) {
+    Text(taskContent.msg)
+    Text(taskContent.hint1)
 }
 
 @Composable

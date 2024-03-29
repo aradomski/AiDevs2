@@ -28,6 +28,8 @@ class TaskScreenModel(
                         Task.INPROMPT -> getTaskContent<TaskResponses.InpromptResponse>()
                         Task.EMBEDDING -> getTaskContent<TaskResponses.EmbeddingResponse>()
                         Task.WHISPER -> getTaskContent<TaskResponses.WhisperResponse>()
+                        Task.FUNCTIONS -> getTaskContent<TaskResponses.FunctionsResponse>()
+                        Task.RODO -> getTaskContent<TaskResponses.RodoResponse>()
                     }
                 }
             }

@@ -11,5 +11,7 @@ data class AnswerResponse(
     @SerialName("msg")
     val msg: String,
     @SerialName("note")
-    val note: String? = null
+    val note: String? = null,
+    @SerialName("reply")
+    val reply: String? = null
 )
