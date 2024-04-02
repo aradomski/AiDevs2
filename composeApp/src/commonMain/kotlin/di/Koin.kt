@@ -89,7 +89,7 @@ val ktorModule = module {
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
-                        Napier.v("HTTP Client", null, message)
+                        Napier.d(message = message)
                     }
                 }
                 level = LogLevel.ALL
@@ -117,7 +117,7 @@ val ktorModule = module {
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
-                        Napier.v("HTTP Client", null, message)
+                        Napier.d(message = message)
                     }
                 }
                 level = LogLevel.ALL

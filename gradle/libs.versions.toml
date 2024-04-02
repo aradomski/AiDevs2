@@ -28,7 +28,7 @@ kotlinx-coroutines = "1.8.1-Beta"
 
 openai-client= "3.7.0"
 
-napier = "2.6.1"
+napier = "2.7.1"
 
 okio= "3.9.0"
 

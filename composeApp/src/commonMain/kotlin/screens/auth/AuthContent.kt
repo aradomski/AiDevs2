@@ -49,7 +49,7 @@ fun AuthContent(
             Text("Input your token")
         })
         LazyVerticalGrid(
-            modifier = Modifier.padding(vertical = 16.dp),
+            modifier = Modifier.padding(vertical = 16.dp).weight(1f),
             columns = GridCells.Adaptive(128.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
