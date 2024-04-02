@@ -119,4 +119,16 @@ sealed class TaskResponses {
         val hint3: String,
     ) : TaskResponses()
 
+    @Serializable
+    data class ScraperResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("input")
+        val input: String,
+        @SerialName("question")
+        val question: String,
+    ) : TaskResponses()
+
 }

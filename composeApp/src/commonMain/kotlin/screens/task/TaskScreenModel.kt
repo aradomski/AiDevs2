@@ -30,6 +30,7 @@ class TaskScreenModel(
                         Task.WHISPER -> getTaskContent<TaskResponses.WhisperResponse>()
                         Task.FUNCTIONS -> getTaskContent<TaskResponses.FunctionsResponse>()
                         Task.RODO -> getTaskContent<TaskResponses.RodoResponse>()
+                        Task.SCRAPER -> getTaskContent<TaskResponses.ScraperResponse>()
                     }
                 }
             }

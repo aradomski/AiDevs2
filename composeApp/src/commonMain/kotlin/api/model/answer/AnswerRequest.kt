@@ -60,6 +60,13 @@ sealed class AnswerRequest {
         @SerialName("answer")
         val answer: String
     ) : AnswerRequest()
+
+
+    @Serializable
+    data class Scraper(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
 }
 
 

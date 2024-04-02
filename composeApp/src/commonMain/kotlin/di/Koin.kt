@@ -7,6 +7,8 @@ import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
@@ -97,8 +99,19 @@ val ktorModule = module {
 
     single(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)) {
         HttpClient {
+            install(HttpRequestRetry) {
+                retryOnServerErrors(maxRetries = 10)
+                exponentialDelay(maxDelayMs = 5.seconds.inWholeMilliseconds)
+                retryOnException()
+                retryIf { httpRequest, httpResponse ->
+                    httpResponse.status.value !in 200..299
+                }
+
+            }
             install(HttpTimeout) {
-                requestTimeoutMillis = 1000 * 60 * 2
+                requestTimeoutMillis = 1000 * 60 * 5
+                connectTimeoutMillis = 1000 * 60 * 5
+                socketTimeoutMillis = 1000 * 60 * 5
             }
             install(Logging) {
                 logger = object : Logger {
@@ -107,6 +120,12 @@ val ktorModule = module {
                     }
                 }
                 level = LogLevel.ALL
+            }
+            install(DefaultRequest) {
+                headers.append(
+                    "User-Agent",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0"
+                )
             }
         }
     }

@@ -19,6 +19,7 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.api.moderation.ModerationModel
 import com.aallam.openai.api.moderation.moderationRequest
 import com.aallam.openai.client.OpenAI
+import io.github.aakira.napier.Napier
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -71,7 +72,47 @@ class TaskSolverService(
             )
 
             Task.RODO -> solveRodo(token, task, response as TaskResponses.RodoResponse)
+
+            Task.SCRAPER -> solveScraper(token, task, response as TaskResponses.ScraperResponse)
         }
+    }
+
+    private suspend fun solveScraper(
+        token: String,
+        task: Task,
+        scraperResponse: TaskResponses.ScraperResponse
+    ): SolvingData {
+        var textToAnalyze = ""
+                textToAnalyze = fileDownloader.downloadText(scraperResponse.input)
+
+
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = """Twoje zadanie to odpowiadać na pytania na podstawie poniższego tekstu
+                        |
+                        |####
+                        |
+                        | $textToAnalyze
+                    """.trimMargin()
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = scraperResponse.question
+                )
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+
+        val answerRequest =
+            AnswerRequest.Scraper(chatCompletion.choices[0].message.content?:"")
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
     }
 
     private suspend fun solveRodo(

@@ -8,4 +8,5 @@ enum class Task(val taskName: String) {
     WHISPER("whisper"),
     FUNCTIONS("functions"),
     RODO("rodo"),
+    SCRAPER("scraper"),
 }
