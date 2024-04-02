@@ -28,6 +28,7 @@ import screens.task.TaskScreenModel
 import service.AiDevs2Service
 import service.FileDownloader
 import service.TaskSolverService
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 private const val AI_DEVS_API = "AiDevsApi"
@@ -109,9 +110,9 @@ val ktorModule = module {
 
             }
             install(HttpTimeout) {
-                requestTimeoutMillis = 1000 * 60 * 5
-                connectTimeoutMillis = 1000 * 60 * 5
-                socketTimeoutMillis = 1000 * 60 * 5
+                requestTimeoutMillis = 5.minutes.inWholeMilliseconds
+                connectTimeoutMillis = 5.minutes.inWholeMilliseconds
+                socketTimeoutMillis = 5.minutes.inWholeMilliseconds
             }
             install(Logging) {
                 logger = object : Logger {
