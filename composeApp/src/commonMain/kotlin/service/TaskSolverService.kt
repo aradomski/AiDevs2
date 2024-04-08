@@ -3,9 +3,16 @@ package service
 import Task
 import api.model.answer.AnswerRequest
 import api.model.answer.AnswerResponse
+import api.model.auth.AuthRequest
+import api.model.auth.AuthResponse
 import api.model.task.TaskResponses
+import api.model.unknow.people.Person
+import api.model.unknow.people.PersonWithMetadata
+import api.model.unknow.search.UnknowNews
+import api.model.unknow.search.UnknowNewsWithMetadata
 import com.aallam.openai.api.audio.Transcription
 import com.aallam.openai.api.audio.TranscriptionRequest
+import com.aallam.openai.api.chat.ChatCompletion
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
@@ -19,7 +26,6 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.api.moderation.ModerationModel
 import com.aallam.openai.api.moderation.moderationRequest
 import com.aallam.openai.client.OpenAI
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -29,7 +35,8 @@ import okio.Buffer
 class TaskSolverService(
     private val openAI: OpenAI,
     private val aiDevs2Service: AiDevs2Service,
-    private val fileDownloader: FileDownloader
+    private val fileDownloader: FileDownloader,
+    private val qdrantSolverService: QdrantSolverService,
 ) {
     suspend fun solve(
         token: String,
@@ -74,7 +81,166 @@ class TaskSolverService(
             Task.RODO -> solveRodo(token, task, response as TaskResponses.RodoResponse)
 
             Task.SCRAPER -> solveScraper(token, task, response as TaskResponses.ScraperResponse)
+            Task.WHOAMI -> solveWhoami(token, task, response as TaskResponses.EmptyWhoamiResponse)
+            Task.SEARCH -> solveSearch(token, task, response as TaskResponses.EmptySearchResponse)
+            Task.PEOPLE -> solvePeople(token, task, response as TaskResponses.PeopleResponse)
         }
+    }
+
+    private suspend fun solvePeople(
+        token: String,
+        task: Task,
+        peopleResponse: TaskResponses.PeopleResponse
+    ): SolvingData {
+        /// Qdrant must be running with opened port 6334. JVM only
+        val collectionName = "people"
+        val people: List<Person> =
+            fileDownloader.downloadJson("https://tasks.aidevs.pl/data/people.json")
+
+
+        val existedBefore = qdrantSolverService.createCollection(collectionName)
+        if (!existedBefore) {
+            val personWithMetadata = people.mapIndexed { index, it ->
+                val embeddingRequest = EmbeddingRequest(
+                    model = ModelId("text-embedding-ada-002"),
+                    input = listOf(it.toString())
+                )
+                val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
+
+                PersonWithMetadata.fromPerson(it, index, embeddings.embeddings[0].embedding)
+            }
+            qdrantSolverService.upsert(collectionName, personWithMetadata,true)
+        }
+
+//        val peopleResponse = aiDevs2Service.getTask<TaskResponses.PeopleResponse>(auth.token)
+
+        val embeddingRequest = EmbeddingRequest(
+            model = ModelId("text-embedding-ada-002"),
+            input = listOf(peopleResponse.question)
+        )
+        val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
+
+
+        val search = qdrantSolverService.search(collectionName, embeddings.embeddings[0].embedding)
+
+        val person = people[search.toInt()]
+
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = "You answer questions based on given person:" +
+                            "$person"
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = peopleResponse.question
+                )
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+
+        val answerRequest =
+            AnswerRequest.Whoami(chatCompletion.choices.get(0).message.content!!)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
+    }
+
+    private suspend fun solveSearch(
+        token: String,
+        task: Task,
+        emptySearchResponse: TaskResponses.EmptySearchResponse
+    ): SolvingData {
+        /// Qdrant must be running with opened port 6334. JVM only
+
+        val collectionName = "search collection search"
+
+        val auth = aiDevs2Service.auth(Task.SEARCH.taskName, AuthRequest(token))
+        val unknowNews: List<UnknowNews> =
+            fileDownloader.downloadJson("https://unknow.news/archiwum_aidevs.json")
+
+
+        val existedBefore = qdrantSolverService.createCollection(collectionName)
+        if (!existedBefore) {
+            val unknowNewsWithMetadata = unknowNews.mapIndexed { index, it ->
+                val embeddingRequest = EmbeddingRequest(
+                    model = ModelId("text-embedding-ada-002"),
+                    input = listOf(it.toString())
+                )
+                val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
+
+                UnknowNewsWithMetadata(
+                    date = it.date, info = it.info, title = it.title, url = it.url, uuid = index,
+                    source = collectionName, vector = embeddings.embeddings[0].embedding
+                )
+            }
+            qdrantSolverService.upsert(collectionName, unknowNewsWithMetadata)
+        }
+
+        val searchResponse = aiDevs2Service.getTask<TaskResponses.SearchResponse>(auth.token)
+
+        val embeddingRequest = EmbeddingRequest(
+            model = ModelId("text-embedding-ada-002"),
+            input = listOf(searchResponse.question)
+        )
+        val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
+
+
+        val search = qdrantSolverService.search(collectionName, embeddings.embeddings[0].embedding)
+
+
+        val answerRequest =
+            AnswerRequest.Whoami(unknowNews[search.toInt()].url)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(auth.token, answerRequest),
+        )
+    }
+
+    private suspend fun solveWhoami(
+        token: String,
+        task: Task,
+        emptyWhoamiResponse: TaskResponses.EmptyWhoamiResponse
+    ): SolvingData {
+
+        val messages = mutableListOf(
+            ChatMessage(
+                role = ChatRole.System,
+                content = """Your role is to guess character/person based on hints given by user.
+                    | Respond only with guessed name.
+                    | If you are not 100% sure if you guessed correctly respond only with "more info please" """.trimMargin()
+            ),
+        )
+        var chatCompletion: ChatCompletion
+        var authResponse: AuthResponse
+        do {
+            authResponse = aiDevs2Service.auth(task.taskName, AuthRequest(token))
+            val whoamiResponse =
+                aiDevs2Service.getTask<TaskResponses.WhoamiResponse>(authResponse.token)
+            messages.add(
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = whoamiResponse.hint
+                ),
+            )
+            val chatCompletionRequest = ChatCompletionRequest(
+                model = ModelId("gpt-3.5-turbo"),
+                messages = messages
+            )
+            chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+            messages.add(chatCompletion.choices[0].message)
+
+        } while (chatCompletion.choices[0].message.content?.lowercase() == "more info please")
+        val answerRequest =
+            AnswerRequest.Whoami(chatCompletion.choices[0].message.content!!)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(authResponse.token, answerRequest),
+        )
     }
 
     private suspend fun solveScraper(
@@ -83,7 +249,7 @@ class TaskSolverService(
         scraperResponse: TaskResponses.ScraperResponse
     ): SolvingData {
         var textToAnalyze = ""
-                textToAnalyze = fileDownloader.downloadText(scraperResponse.input)
+        textToAnalyze = fileDownloader.downloadText(scraperResponse.input)
 
 
         val chatCompletionRequest = ChatCompletionRequest(
@@ -108,7 +274,7 @@ class TaskSolverService(
 
 
         val answerRequest =
-            AnswerRequest.Scraper(chatCompletion.choices[0].message.content?:"")
+            AnswerRequest.Scraper(chatCompletion.choices[0].message.content ?: "")
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),

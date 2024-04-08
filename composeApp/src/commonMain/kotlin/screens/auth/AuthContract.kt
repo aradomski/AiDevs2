@@ -18,6 +18,7 @@ interface AuthContract {
         val token: String? = AI_DEVS_KEY,
         val task: Task? = null,
         val response: String? = null,
+        val goDirectlyToTaskSolving: Boolean = false,
     ) : UiState
 
 

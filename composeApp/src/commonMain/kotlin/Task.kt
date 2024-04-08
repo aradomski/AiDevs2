@@ -9,4 +9,7 @@ enum class Task(val taskName: String) {
     FUNCTIONS("functions"),
     RODO("rodo"),
     SCRAPER("scraper"),
+    WHOAMI("whoami"),
+    SEARCH("search"),
+    PEOPLE("people"),
 }

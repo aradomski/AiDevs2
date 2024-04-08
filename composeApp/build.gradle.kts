@@ -1,4 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -8,7 +10,22 @@ plugins {
 }
 
 kotlin {
-
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        moduleName = "composeApp"
+//        browser {
+//            commonWebpackConfig {
+//                outputFileName = "composeApp.js"
+//                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+//                    static = (static ?: mutableListOf()).apply {
+//                        // Serve sources to debug inside browser
+//                        add(project.projectDir.path)
+//                    }
+//                }
+//            }
+//        }
+//        binaries.executable()
+//    }
     androidTarget {
         compilations.all {
             kotlinOptions {
@@ -32,6 +49,7 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting
+//        val wasmJsMain by getting
 
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling.preview)
@@ -72,6 +90,10 @@ kotlin {
 
             implementation(libs.openai.client)
             implementation(libs.okio)
+
+            // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin
+//            implementation("com.google.protobuf:protobuf-kotlin:4.26.1")
+
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -79,11 +101,20 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core.jvm)
 //            implementation(libs.kotlinx.coroutines.javafx)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation("io.qdrant:client:1.8.0")
+            implementation("com.google.guava:guava:33.1.0-jre")
+            // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
+            implementation("com.google.protobuf:protobuf-java:3.4.0")
+
         }
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+//        wasmJsMain.dependencies {
+//            implementation(libs.ktor.client.js)
+//        }
+
     }
 }
 
@@ -132,3 +163,6 @@ compose.desktop {
         }
     }
 }
+//compose.experimental {
+//    web.application {}
+//}

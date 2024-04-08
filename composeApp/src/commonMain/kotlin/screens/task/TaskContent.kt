@@ -28,6 +28,17 @@ fun TaskContent(
     onEventSent: (event: TaskContract.Event) -> Unit,
 ) {
     val navigator = LocalNavigator.currentOrThrow
+    if (state.proceedToNextScreen) {
+        navigator.push(
+            AnswerScreen(
+                state.task!!,
+                state.token!!,
+                TaskResponses.EmptyWhoamiResponse
+            )
+        )
+    }
+
+
     Scaffold(topBar = {
         AiDevsAppBar {
             navigator.pop()
@@ -66,7 +77,7 @@ fun TaskContent(
                         )
 
                         is TaskResponses.LiarResponse -> Liar(state, state.taskContent)
-                        is TaskResponses.LiarResponseForQuestion -> { //not displayed
+                        is TaskResponses.LiarResponseForQuestion -> { /*not displayed*/
                         }
 
                         is TaskResponses.InpromptResponse -> {
@@ -81,13 +92,39 @@ fun TaskContent(
 
                         is TaskResponses.FunctionsResponse -> Functions(state, state.taskContent)
                         is TaskResponses.RodoResponse -> Rodo(state, state.taskContent)
-                        null -> Text("no task content yet")
                         is TaskResponses.ScraperResponse -> Scraper(state, state.taskContent)
+                        is TaskResponses.WhoamiResponse -> Whoami(state, state.taskContent)
+                        null -> Text("no task content yet")
+                        is TaskResponses.EmptyWhoamiResponse -> { /*not displayed*/
+                        }
+
+                        TaskResponses.EmptySearchResponse -> { /*not displayed*/
+                        }
+
+                        is TaskResponses.SearchResponse -> { /*not displayed*/
+                        }
+
+                        is TaskResponses.PeopleResponse -> People(state, state.taskContent)
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun People(state: TaskContract.State, taskContent: TaskResponses.PeopleResponse) {
+    Text(taskContent.msg)
+    Text(taskContent.data)
+    Text(taskContent.question)
+    Text(taskContent.hint1)
+    Text(taskContent.hint2)
+}
+
+@Composable
+fun Whoami(state: TaskContract.State, taskContent: TaskResponses.WhoamiResponse) {
+    Text(taskContent.msg)
+    Text(taskContent.hint)
 }
 
 @Composable

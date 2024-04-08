@@ -15,7 +15,8 @@ interface TaskContract {
     data class State(
         val task: Task? = null,
         val token: String? = null,
-        val taskContent: TaskResponses? = null
+        val taskContent: TaskResponses? = null,
+        val proceedToNextScreen:Boolean=false
     ) : UiState
 
 

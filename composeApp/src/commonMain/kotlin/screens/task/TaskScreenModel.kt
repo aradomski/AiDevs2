@@ -31,13 +31,23 @@ class TaskScreenModel(
                         Task.FUNCTIONS -> getTaskContent<TaskResponses.FunctionsResponse>()
                         Task.RODO -> getTaskContent<TaskResponses.RodoResponse>()
                         Task.SCRAPER -> getTaskContent<TaskResponses.ScraperResponse>()
+                        Task.WHOAMI -> {
+                            throw IllegalStateException("This task is time dependent so it will be solved in next screen ")
+                        }
+
+                        Task.SEARCH ->  throw IllegalStateException("This task will be solved in next screen ")
+                        Task.PEOPLE -> getTaskContent<TaskResponses.PeopleResponse>()
                     }
                 }
             }
 
             TaskContract.Event.Init -> {
                 setState {
-                    copy(token = this@TaskScreenModel.token, task = this@TaskScreenModel.task)
+                    copy(
+                        token = this@TaskScreenModel.token,
+                        task = this@TaskScreenModel.task,
+                        proceedToNextScreen = this@TaskScreenModel.task == Task.WHOAMI
+                    )
                 }
             }
         }

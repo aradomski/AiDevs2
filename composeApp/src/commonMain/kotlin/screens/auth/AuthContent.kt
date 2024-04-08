@@ -29,10 +29,12 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import api.model.task.TaskResponses
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import screens.answers.AnswerScreen
 import screens.task.TaskScreen
 
 @Composable
@@ -42,6 +44,15 @@ fun AuthContent(
     onEventSent: (event: AuthContract.Event) -> Unit,
 ) {
     val navigator = LocalNavigator.currentOrThrow
+
+    if (state.goDirectlyToTaskSolving) {
+        when(state.task){
+            Task.WHOAMI ->  navigator.push(AnswerScreen(state.task!!, state.token!!, TaskResponses.EmptyWhoamiResponse))
+            Task.SEARCH ->  navigator.push(AnswerScreen(state.task!!, state.token!!, TaskResponses.EmptySearchResponse))
+            else -> TODO()
+        }
+    }
+
     Column(modifier = Modifier.padding(16.dp)) {
         OutlinedTextField(value = state.token ?: "", onValueChange = {
             onEventSent(AuthContract.Event.TokenUpdated(it))

@@ -67,6 +67,12 @@ sealed class AnswerRequest {
         @SerialName("answer")
         val answer: String
     ) : AnswerRequest()
+
+    @Serializable
+    data class Whoami(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
 }
 
 

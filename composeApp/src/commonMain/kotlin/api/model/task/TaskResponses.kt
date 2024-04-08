@@ -131,4 +131,46 @@ sealed class TaskResponses {
         val question: String,
     ) : TaskResponses()
 
+    @Serializable
+    data class WhoamiResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("hint")
+        val hint: String,
+    ) : TaskResponses()
+
+    data object EmptyWhoamiResponse : TaskResponses()
+
+    data object EmptySearchResponse : TaskResponses()
+
+
+    @Serializable
+    data class SearchResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("question")
+        val question: String,
+    ) : TaskResponses()
+
+    @Serializable
+    data class PeopleResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("data")
+        val data: String,
+        @SerialName("question")
+        val question: String,
+        @SerialName("hint1")
+        val hint1: String,
+        @SerialName("hint2")
+        val hint2: String,
+
+    ) : TaskResponses()
+
 }

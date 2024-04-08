@@ -1,10 +1,13 @@
 package screens.auth
 
+import Task
 import api.model.auth.AuthRequest
 import cafe.adriel.voyager.core.model.screenModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import service.AiDevs2Service
 import util.mvi.BaseViewModel
+import kotlin.time.Duration.Companion.seconds
 
 class AuthScreenModel(private val aiDevs2Service: AiDevs2Service) :
     BaseViewModel<AuthContract.Event, AuthContract.State, AuthContract.Effect>() {
@@ -21,7 +24,14 @@ class AuthScreenModel(private val aiDevs2Service: AiDevs2Service) :
 
             is AuthContract.Event.TaskUpdated -> {
                 setState {
-                    copy(task = event.task)
+                    copy(
+                        task = event.task,
+                        goDirectlyToTaskSolving = (event.task == Task.WHOAMI || event.task == Task.SEARCH)
+                    )
+                }
+                screenModelScope.launch {//dirty hack
+                    delay(1.seconds)
+                    setState { copy(task = event.task, goDirectlyToTaskSolving = false) }
                 }
             }
 

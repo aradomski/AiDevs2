@@ -62,13 +62,20 @@ val servicesModule = module {
 
 val apiModule = module {
     single {
+        Json {
+            ignoreUnknownKeys = true
+            prettyPrint = true
+            isLenient = true
+        }
+    }
+    single {
         AiDevs2Api(
             get(qualifier = StringQualifier(AI_DEVS_API)),
             get(qualifier = StringQualifier(AI_DEVS_API))
         )
     }
     single {
-        FileDownloader(get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)))
+        FileDownloader(get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)), get())
     }
 }
 val ktorModule = module {
@@ -77,15 +84,7 @@ val ktorModule = module {
             install(HttpTimeout) {
                 requestTimeoutMillis = 1000 * 60 * 2
             }
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                        prettyPrint = true
-                        isLenient = true
-                    }
-                )
-            }
+            install(ContentNegotiation) { json(get()) }
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
