@@ -12,5 +12,6 @@ enum class Task(val taskName: String) {
     WHOAMI("whoami"),
     SEARCH("search"),
     PEOPLE("people"),
-    KNOWLEDGE("knowledge")
+    KNOWLEDGE("knowledge"),
+    TOOLS("tools"),
 }

@@ -35,9 +35,10 @@ class TaskScreenModel(
                             throw IllegalStateException("This task is time dependent so it will be solved in next screen ")
                         }
 
-                        Task.SEARCH ->  throw IllegalStateException("This task will be solved in next screen ")
+                        Task.SEARCH -> throw IllegalStateException("This task will be solved in next screen ")
                         Task.PEOPLE -> getTaskContent<TaskResponses.PeopleResponse>()
                         Task.KNOWLEDGE -> getTaskContent<TaskResponses.KnowledgeResponse>()
+                        Task.TOOLS -> getTaskContent<TaskResponses.ToolsResponse>()
                     }
                 }
             }

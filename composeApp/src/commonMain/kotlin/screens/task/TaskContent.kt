@@ -106,11 +106,17 @@ fun TaskContent(
 
                         is TaskResponses.PeopleResponse -> People(state, state.taskContent)
                         is TaskResponses.KnowledgeResponse -> Knowledge(state, state.taskContent)
+                        is TaskResponses.ToolsResponse -> Tools(state, state.taskContent)
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Tools(state: TaskContract.State, taskContent: TaskResponses.ToolsResponse) {
+    Text("$taskContent")
 }
 
 @Composable

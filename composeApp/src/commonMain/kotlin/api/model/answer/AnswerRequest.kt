@@ -73,6 +73,35 @@ sealed class AnswerRequest {
         @SerialName("answer")
         val answer: String
     ) : AnswerRequest()
+
+
+    @Serializable
+    data class Tool(
+        @SerialName("answer")
+        val answer: ToolAnswer
+    ) : AnswerRequest()
+
+    @Serializable
+    sealed interface ToolAnswer
+
+    @Serializable
+    data class ToolCalendarAnswer(
+        @SerialName("tool")
+        val tool: String,
+        @SerialName("desc")
+        val desc: String,
+        @SerialName("date")
+        val date: String,
+    ) : ToolAnswer
+
+    @Serializable
+    data class ToolToDoAnswer(
+        @SerialName("tool")
+        val tool: String,
+        @SerialName("desc")
+        val desc: String,
+    ) : ToolAnswer
+
 }
 
 

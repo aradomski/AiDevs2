@@ -26,6 +26,7 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.api.moderation.ModerationModel
 import com.aallam.openai.api.moderation.moderationRequest
 import com.aallam.openai.client.OpenAI
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -37,6 +38,7 @@ class TaskSolverService(
     private val aiDevs2Service: AiDevs2Service,
     private val fileDownloader: FileDownloader,
     private val qdrantSolverService: QdrantSolverService,
+    private val json: Json
 ) {
     suspend fun solve(
         token: String,
@@ -89,7 +91,101 @@ class TaskSolverService(
                 task,
                 response as TaskResponses.KnowledgeResponse
             )
+
+            Task.TOOLS -> solveTools(token, task, response as TaskResponses.ToolsResponse)
         }
+    }
+
+    //
+//    |
+//    |if text is related to ToDo
+//    |then return json like this
+//    | {"tool":"ToDo","desc":" DO STUFF" }"
+//    |
+//    | if it is related to calendar return json like this:
+//    |
+//    |{"tool":"Calendar","desc":" CALENDAR ENTRY ","date":"2024-04-10"}"
+//    |
+    private suspend fun solveTools(
+        token: String,
+        task: Task,
+        toolsResponse: TaskResponses.ToolsResponse
+    ): SolvingData {
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = """Your role is to determine if the given text is note to calendar or ToDo list entry. If time or date is mentioned in text this is calendar entry
+                        |if text is related to ToDo just return "TODO"
+                        |if text is calendar entry just return "Calendar"
+                    """.trimMargin()
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = toolsResponse.question
+                )
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+        val toolAnswer = when (chatCompletion.choices.get(0).message.content!!.lowercase()) {
+            "todo" -> {
+                val chatCompletionRequest = ChatCompletionRequest(
+                    model = ModelId("gpt-3.5-turbo"),
+                    messages = listOf(
+                        ChatMessage(
+                            role = ChatRole.System,
+                            content = """Based on given TODO entry generate JSON like this:
+                                |{"tool":"ToDo","desc":" DO STUFF" }"
+                                |return only json
+                                |
+                    """.trimMargin()
+                        ),
+                        ChatMessage(
+                            role = ChatRole.User,
+                            content = toolsResponse.question
+                        )
+                    )
+                )
+                val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+                json.decodeFromString<AnswerRequest.ToolToDoAnswer>(chatCompletion.choices.get(0).message.content!!)
+            }
+
+            "calendar" -> {
+                val chatCompletionRequest = ChatCompletionRequest(
+                    model = ModelId("gpt-3.5-turbo"),
+                    messages = listOf(
+                        ChatMessage(
+                            role = ChatRole.System,
+                            content = """Based on given Calendar  entry generate JSON like this:
+                                |{"tool":"Calendar","desc":" CALENDAR ENTRY ","date":"yyyy-mm-dd"}"
+                                |return only json. Today is 09.04.2024
+                                |
+                    """.trimMargin()
+                        ),
+                        ChatMessage(
+                            role = ChatRole.User,
+                            content = toolsResponse.question
+                        )
+                    )
+                )
+                val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+                json.decodeFromString<AnswerRequest.ToolCalendarAnswer>(chatCompletion.choices.get(0).message.content!!)
+            }
+
+            else -> { throw  IllegalStateException("coś się zepsuło w powyżej")}
+        }
+
+
+        val answerRequest =
+            AnswerRequest.Tool(toolAnswer)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
     }
 
     private suspend fun solveKnowledge(
