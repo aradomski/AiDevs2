@@ -75,7 +75,8 @@ val apiModule = module {
         )
     }
     single {
-        FileDownloader(get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)), get())
+        FileDownloader(get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)), get(), get(qualifier = StringQualifier(
+            AI_DEVS_API)))
     }
 }
 val ktorModule = module {

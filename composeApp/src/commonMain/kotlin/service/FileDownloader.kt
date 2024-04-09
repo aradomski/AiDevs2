@@ -6,7 +6,7 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
 
-class FileDownloader(val httpClient: HttpClient, val json: Json) {
+class FileDownloader(val httpClient: HttpClient, val json: Json,val jsonHttpClient: HttpClient) {
 
     suspend fun downloadFile(url: String): ByteArray {
         return httpClient.get(url).body()
@@ -20,4 +20,6 @@ class FileDownloader(val httpClient: HttpClient, val json: Json) {
         val bodyAsText = httpClient.get(url).bodyAsText()
         return json.decodeFromString(bodyAsText)
     }
+
+
 }

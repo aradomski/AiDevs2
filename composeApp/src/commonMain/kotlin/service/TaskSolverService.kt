@@ -84,7 +84,91 @@ class TaskSolverService(
             Task.WHOAMI -> solveWhoami(token, task, response as TaskResponses.EmptyWhoamiResponse)
             Task.SEARCH -> solveSearch(token, task, response as TaskResponses.EmptySearchResponse)
             Task.PEOPLE -> solvePeople(token, task, response as TaskResponses.PeopleResponse)
+            Task.KNOWLEDGE -> solveKnowledge(
+                token,
+                task,
+                response as TaskResponses.KnowledgeResponse
+            )
         }
+    }
+
+    private suspend fun solveKnowledge(
+        token: String,
+        task: Task,
+        knowledgeResponse: TaskResponses.KnowledgeResponse
+    ): SolvingData {
+
+        val restcountriesUrl = "https://restcountries.com/v3.1/all/"
+        val currencyUrl = " https://api.nbp.pl/api/exchangerates/tables/A/"
+
+
+        val restCountries = fileDownloader.downloadText(restcountriesUrl)
+        val currency = fileDownloader.downloadText(currencyUrl)
+
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-3.5-turbo"),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = """Your role is to determine if the questions is about currency or population based on provided question.
+                        | Answer only by using "currency" or "population"
+                    """.trimMargin()
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = knowledgeResponse.question
+                )
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+        val answer =
+            if (chatCompletion.choices.get(0).message.content?.lowercase() == "population") {
+                val chatCompletionRequest = ChatCompletionRequest(
+                    model = ModelId("gpt-3.5-turbo"),
+                    messages = listOf(
+                        ChatMessage(
+                            role = ChatRole.System,
+                            content = """Your role is to answer question based on this data 
+                            |
+                            |$restCountries
+                        """.trimMargin()
+                        ),
+                        ChatMessage(
+                            role = ChatRole.User,
+                            content = knowledgeResponse.question
+                        )
+                    )
+                )
+                val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+                chatCompletion.choices.get(0).message.content
+            } else {
+                val chatCompletionRequest = ChatCompletionRequest(
+                    model = ModelId("gpt-3.5-turbo"),
+                    messages = listOf(
+                        ChatMessage(
+                            role = ChatRole.System,
+                            content = """Your role is to answer question based on this data 
+                            |
+                            |$currency
+                        """.trimMargin()
+                        ),
+                        ChatMessage(
+                            role = ChatRole.User,
+                            content = knowledgeResponse.question
+                        )
+                    )
+                )
+                val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+                chatCompletion.choices.get(0).message.content
+            }
+
+        val answerRequest =
+            AnswerRequest.Whoami(answer!!)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
     }
 
     private suspend fun solvePeople(
@@ -109,7 +193,7 @@ class TaskSolverService(
 
                 PersonWithMetadata.fromPerson(it, index, embeddings.embeddings[0].embedding)
             }
-            qdrantSolverService.upsert(collectionName, personWithMetadata,true)
+            qdrantSolverService.upsert(collectionName, personWithMetadata, true)
         }
 
 //        val peopleResponse = aiDevs2Service.getTask<TaskResponses.PeopleResponse>(auth.token)

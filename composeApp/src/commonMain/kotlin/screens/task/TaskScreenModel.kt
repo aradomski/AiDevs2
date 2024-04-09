@@ -37,6 +37,7 @@ class TaskScreenModel(
 
                         Task.SEARCH ->  throw IllegalStateException("This task will be solved in next screen ")
                         Task.PEOPLE -> getTaskContent<TaskResponses.PeopleResponse>()
+                        Task.KNOWLEDGE -> getTaskContent<TaskResponses.KnowledgeResponse>()
                     }
                 }
             }

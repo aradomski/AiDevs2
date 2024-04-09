@@ -170,7 +170,18 @@ sealed class TaskResponses {
         val hint1: String,
         @SerialName("hint2")
         val hint2: String,
-
     ) : TaskResponses()
-
+    @Serializable
+    data class KnowledgeResponse(
+        @SerialName("code")
+        val code: Int,
+        @SerialName("msg")
+        val msg: String,
+        @SerialName("question")
+        val question: String,
+        @SerialName("database #1")
+        val hint1: String,
+        @SerialName("database #2")
+        val hint2: String,
+    ) : TaskResponses()
 }
