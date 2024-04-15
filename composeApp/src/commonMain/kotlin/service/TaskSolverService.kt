@@ -1,15 +1,17 @@
 package service
 
 import Task
-import api.model.answer.AnswerRequest
-import api.model.answer.AnswerResponse
-import api.model.auth.AuthRequest
-import api.model.auth.AuthResponse
-import api.model.task.TaskResponses
-import api.model.unknow.people.Person
-import api.model.unknow.people.PersonWithMetadata
-import api.model.unknow.search.UnknowNews
-import api.model.unknow.search.UnknowNewsWithMetadata
+import api.aidevs.model.answer.AnswerRequest
+import api.aidevs.model.answer.AnswerResponse
+import api.aidevs.model.auth.AuthRequest
+import api.aidevs.model.auth.AuthResponse
+import api.aidevs.model.task.TaskResponses
+import api.aidevs.model.unknow.people.Person
+import api.aidevs.model.unknow.people.PersonWithMetadata
+import api.aidevs.model.unknow.search.UnknowNews
+import api.aidevs.model.unknow.search.UnknowNewsWithMetadata
+import api.renderform.model.Data
+import api.renderform.model.RenderRequest
 import com.aallam.openai.api.audio.Transcription
 import com.aallam.openai.api.audio.TranscriptionRequest
 import com.aallam.openai.api.chat.ChatCompletion
@@ -17,6 +19,7 @@ import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.chat.FunctionTool
+import com.aallam.openai.api.chat.ImagePart
 import com.aallam.openai.api.chat.ToolChoice
 import com.aallam.openai.api.chat.chatCompletionRequest
 import com.aallam.openai.api.embedding.EmbeddingRequest
@@ -38,7 +41,8 @@ class TaskSolverService(
     private val aiDevs2Service: AiDevs2Service,
     private val fileDownloader: FileDownloader,
     private val qdrantSolverService: QdrantSolverService,
-    private val json: Json
+    private val json: Json,
+    private val renderFormService: RenderFormService,
 ) {
     suspend fun solve(
         token: String,
@@ -49,8 +53,7 @@ class TaskSolverService(
         return when (task) {
             Task.HELLO_API -> solveHelloApi(token, response as TaskResponses.HelloApiResponse)
             Task.MODERATION -> solveModeration(
-                token,
-                response as TaskResponses.ModerationResponse
+                token, response as TaskResponses.ModerationResponse
             )
 
             Task.BLOGGER -> solveBlogger(token, task, response as TaskResponses.BloggerResponse)
@@ -68,16 +71,12 @@ class TaskSolverService(
             )
 
             Task.EMBEDDING -> solveEmbedding(
-                token,
-                task,
-                response as TaskResponses.EmbeddingResponse
+                token, task, response as TaskResponses.EmbeddingResponse
             )
 
             Task.WHISPER -> solveWhisper(token, task, response as TaskResponses.WhisperResponse)
             Task.FUNCTIONS -> solveFunctions(
-                token,
-                task,
-                response as TaskResponses.FunctionsResponse
+                token, task, response as TaskResponses.FunctionsResponse
             )
 
             Task.RODO -> solveRodo(token, task, response as TaskResponses.RodoResponse)
@@ -87,13 +86,71 @@ class TaskSolverService(
             Task.SEARCH -> solveSearch(token, task, response as TaskResponses.EmptySearchResponse)
             Task.PEOPLE -> solvePeople(token, task, response as TaskResponses.PeopleResponse)
             Task.KNOWLEDGE -> solveKnowledge(
-                token,
-                task,
-                response as TaskResponses.KnowledgeResponse
+                token, task, response as TaskResponses.KnowledgeResponse
             )
 
             Task.TOOLS -> solveTools(token, task, response as TaskResponses.ToolsResponse)
+            Task.GNOME -> solveGnome(token, task, response as TaskResponses.GnomeResponse)
+            Task.OWNAPI -> solveOwnapi(token, task, response as TaskResponses.OwnApiResponse)
+            Task.OWNAPIPRO -> solveOwnapi(token, task, response as TaskResponses.OwnApiResponse)
+            Task.MEME -> solveMeme(token, task, response as TaskResponses.MemeResponse)
         }
+    }
+
+    private suspend fun solveMeme(
+        token: String, task: Task, memeResponse: TaskResponses.MemeResponse
+    ): SolvingData {
+        val render = renderFormService.render(
+            RenderRequest(
+                Data(
+                    memeResponse.text, memeResponse.image
+                ), "wicked-goats-play-merrily-1010"
+            )
+        )
+
+        val answerRequest = AnswerRequest.Meme(render.href)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
+    }
+
+    private suspend fun solveOwnapi(
+        token: String, task: Task, ownApiResponse: TaskResponses.OwnApiResponse
+    ): SolvingData {
+//        https://aidevs.radomski.dev/api/ai_devs
+
+
+        val answerRequest = AnswerRequest.OwnApi("https://aidevs.radomski.dev/api/ai_devs")
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
+    }
+
+    private suspend fun solveGnome(
+        token: String, task: Task, gnomeResponse: TaskResponses.GnomeResponse
+    ): SolvingData {
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = ModelId("gpt-4-turbo"), messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = """Your role is to determine color of hat of gnome in given image. If there is no gnome on the image just return "error""".trimMargin()
+                ),
+                //TODO https://github.com/aallam/openai-kotlin/issues/320
+                ChatMessage(
+                    role = ChatRole.User, content = listOf(ImagePart(gnomeResponse.url))
+                )
+
+            )
+        )
+        val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
+
+        val answerRequest = AnswerRequest.Gnome(chatCompletion.choices[0].message.content!!)
+        return SolvingData(
+            answerRequest,
+            aiDevs2Service.answer(token, answerRequest),
+        )
     }
 
     //
@@ -107,23 +164,18 @@ class TaskSolverService(
 //    |{"tool":"Calendar","desc":" CALENDAR ENTRY ","date":"2024-04-10"}"
 //    |
     private suspend fun solveTools(
-        token: String,
-        task: Task,
-        toolsResponse: TaskResponses.ToolsResponse
+        token: String, task: Task, toolsResponse: TaskResponses.ToolsResponse
     ): SolvingData {
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = """Your role is to determine if the given text is note to calendar or ToDo list entry. If time or date is mentioned in text this is calendar entry
                         |if text is related to ToDo just return "TODO"
                         |if text is calendar entry just return "Calendar"
                     """.trimMargin()
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = toolsResponse.question
+                ), ChatMessage(
+                    role = ChatRole.User, content = toolsResponse.question
                 )
             )
         )
@@ -132,8 +184,7 @@ class TaskSolverService(
         val toolAnswer = when (chatCompletion.choices.get(0).message.content!!.lowercase()) {
             "todo" -> {
                 val chatCompletionRequest = ChatCompletionRequest(
-                    model = ModelId("gpt-3.5-turbo"),
-                    messages = listOf(
+                    model = ModelId("gpt-3.5-turbo"), messages = listOf(
                         ChatMessage(
                             role = ChatRole.System,
                             content = """Based on given TODO entry generate JSON like this:
@@ -141,10 +192,8 @@ class TaskSolverService(
                                 |return only json
                                 |
                     """.trimMargin()
-                        ),
-                        ChatMessage(
-                            role = ChatRole.User,
-                            content = toolsResponse.question
+                        ), ChatMessage(
+                            role = ChatRole.User, content = toolsResponse.question
                         )
                     )
                 )
@@ -155,8 +204,7 @@ class TaskSolverService(
 
             "calendar" -> {
                 val chatCompletionRequest = ChatCompletionRequest(
-                    model = ModelId("gpt-3.5-turbo"),
-                    messages = listOf(
+                    model = ModelId("gpt-3.5-turbo"), messages = listOf(
                         ChatMessage(
                             role = ChatRole.System,
                             content = """Based on given Calendar  entry generate JSON like this:
@@ -164,10 +212,8 @@ class TaskSolverService(
                                 |return only json. Today is 09.04.2024
                                 |
                     """.trimMargin()
-                        ),
-                        ChatMessage(
-                            role = ChatRole.User,
-                            content = toolsResponse.question
+                        ), ChatMessage(
+                            role = ChatRole.User, content = toolsResponse.question
                         )
                     )
                 )
@@ -176,12 +222,13 @@ class TaskSolverService(
                 json.decodeFromString<AnswerRequest.ToolCalendarAnswer>(chatCompletion.choices.get(0).message.content!!)
             }
 
-            else -> { throw  IllegalStateException("coś się zepsuło w powyżej")}
+            else -> {
+                throw IllegalStateException("coś się zepsuło w powyżej")
+            }
         }
 
 
-        val answerRequest =
-            AnswerRequest.Tool(toolAnswer)
+        val answerRequest = AnswerRequest.Tool(toolAnswer)
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),
@@ -189,9 +236,7 @@ class TaskSolverService(
     }
 
     private suspend fun solveKnowledge(
-        token: String,
-        task: Task,
-        knowledgeResponse: TaskResponses.KnowledgeResponse
+        token: String, task: Task, knowledgeResponse: TaskResponses.KnowledgeResponse
     ): SolvingData {
 
         val restcountriesUrl = "https://restcountries.com/v3.1/all/"
@@ -202,17 +247,14 @@ class TaskSolverService(
         val currency = fileDownloader.downloadText(currencyUrl)
 
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = """Your role is to determine if the questions is about currency or population based on provided question.
                         | Answer only by using "currency" or "population"
                     """.trimMargin()
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = knowledgeResponse.question
+                ), ChatMessage(
+                    role = ChatRole.User, content = knowledgeResponse.question
                 )
             )
         )
@@ -221,18 +263,15 @@ class TaskSolverService(
         val answer =
             if (chatCompletion.choices.get(0).message.content?.lowercase() == "population") {
                 val chatCompletionRequest = ChatCompletionRequest(
-                    model = ModelId("gpt-3.5-turbo"),
-                    messages = listOf(
+                    model = ModelId("gpt-3.5-turbo"), messages = listOf(
                         ChatMessage(
                             role = ChatRole.System,
                             content = """Your role is to answer question based on this data 
                             |
                             |$restCountries
                         """.trimMargin()
-                        ),
-                        ChatMessage(
-                            role = ChatRole.User,
-                            content = knowledgeResponse.question
+                        ), ChatMessage(
+                            role = ChatRole.User, content = knowledgeResponse.question
                         )
                     )
                 )
@@ -240,18 +279,15 @@ class TaskSolverService(
                 chatCompletion.choices.get(0).message.content
             } else {
                 val chatCompletionRequest = ChatCompletionRequest(
-                    model = ModelId("gpt-3.5-turbo"),
-                    messages = listOf(
+                    model = ModelId("gpt-3.5-turbo"), messages = listOf(
                         ChatMessage(
                             role = ChatRole.System,
                             content = """Your role is to answer question based on this data 
                             |
                             |$currency
                         """.trimMargin()
-                        ),
-                        ChatMessage(
-                            role = ChatRole.User,
-                            content = knowledgeResponse.question
+                        ), ChatMessage(
+                            role = ChatRole.User, content = knowledgeResponse.question
                         )
                     )
                 )
@@ -259,8 +295,7 @@ class TaskSolverService(
                 chatCompletion.choices.get(0).message.content
             }
 
-        val answerRequest =
-            AnswerRequest.Whoami(answer!!)
+        val answerRequest = AnswerRequest.Whoami(answer!!)
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),
@@ -268,9 +303,7 @@ class TaskSolverService(
     }
 
     private suspend fun solvePeople(
-        token: String,
-        task: Task,
-        peopleResponse: TaskResponses.PeopleResponse
+        token: String, task: Task, peopleResponse: TaskResponses.PeopleResponse
     ): SolvingData {
         /// Qdrant must be running with opened port 6334. JVM only
         val collectionName = "people"
@@ -282,8 +315,7 @@ class TaskSolverService(
         if (!existedBefore) {
             val personWithMetadata = people.mapIndexed { index, it ->
                 val embeddingRequest = EmbeddingRequest(
-                    model = ModelId("text-embedding-ada-002"),
-                    input = listOf(it.toString())
+                    model = ModelId("text-embedding-ada-002"), input = listOf(it.toString())
                 )
                 val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
 
@@ -295,8 +327,7 @@ class TaskSolverService(
 //        val peopleResponse = aiDevs2Service.getTask<TaskResponses.PeopleResponse>(auth.token)
 
         val embeddingRequest = EmbeddingRequest(
-            model = ModelId("text-embedding-ada-002"),
-            input = listOf(peopleResponse.question)
+            model = ModelId("text-embedding-ada-002"), input = listOf(peopleResponse.question)
         )
         val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
 
@@ -306,24 +337,19 @@ class TaskSolverService(
         val person = people[search.toInt()]
 
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
-                    content = "You answer questions based on given person:" +
-                            "$person"
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = peopleResponse.question
+                    content = "You answer questions based on given person:" + "$person"
+                ), ChatMessage(
+                    role = ChatRole.User, content = peopleResponse.question
                 )
             )
         )
         val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
 
 
-        val answerRequest =
-            AnswerRequest.Whoami(chatCompletion.choices.get(0).message.content!!)
+        val answerRequest = AnswerRequest.Whoami(chatCompletion.choices.get(0).message.content!!)
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),
@@ -331,9 +357,7 @@ class TaskSolverService(
     }
 
     private suspend fun solveSearch(
-        token: String,
-        task: Task,
-        emptySearchResponse: TaskResponses.EmptySearchResponse
+        token: String, task: Task, emptySearchResponse: TaskResponses.EmptySearchResponse
     ): SolvingData {
         /// Qdrant must be running with opened port 6334. JVM only
 
@@ -348,14 +372,18 @@ class TaskSolverService(
         if (!existedBefore) {
             val unknowNewsWithMetadata = unknowNews.mapIndexed { index, it ->
                 val embeddingRequest = EmbeddingRequest(
-                    model = ModelId("text-embedding-ada-002"),
-                    input = listOf(it.toString())
+                    model = ModelId("text-embedding-ada-002"), input = listOf(it.toString())
                 )
                 val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
 
                 UnknowNewsWithMetadata(
-                    date = it.date, info = it.info, title = it.title, url = it.url, uuid = index,
-                    source = collectionName, vector = embeddings.embeddings[0].embedding
+                    date = it.date,
+                    info = it.info,
+                    title = it.title,
+                    url = it.url,
+                    uuid = index,
+                    source = collectionName,
+                    vector = embeddings.embeddings[0].embedding
                 )
             }
             qdrantSolverService.upsert(collectionName, unknowNewsWithMetadata)
@@ -364,8 +392,7 @@ class TaskSolverService(
         val searchResponse = aiDevs2Service.getTask<TaskResponses.SearchResponse>(auth.token)
 
         val embeddingRequest = EmbeddingRequest(
-            model = ModelId("text-embedding-ada-002"),
-            input = listOf(searchResponse.question)
+            model = ModelId("text-embedding-ada-002"), input = listOf(searchResponse.question)
         )
         val embeddings: EmbeddingResponse = openAI.embeddings(embeddingRequest)
 
@@ -373,8 +400,7 @@ class TaskSolverService(
         val search = qdrantSolverService.search(collectionName, embeddings.embeddings[0].embedding)
 
 
-        val answerRequest =
-            AnswerRequest.Whoami(unknowNews[search.toInt()].url)
+        val answerRequest = AnswerRequest.Whoami(unknowNews[search.toInt()].url)
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(auth.token, answerRequest),
@@ -382,9 +408,7 @@ class TaskSolverService(
     }
 
     private suspend fun solveWhoami(
-        token: String,
-        task: Task,
-        emptyWhoamiResponse: TaskResponses.EmptyWhoamiResponse
+        token: String, task: Task, emptyWhoamiResponse: TaskResponses.EmptyWhoamiResponse
     ): SolvingData {
 
         val messages = mutableListOf(
@@ -403,20 +427,17 @@ class TaskSolverService(
                 aiDevs2Service.getTask<TaskResponses.WhoamiResponse>(authResponse.token)
             messages.add(
                 ChatMessage(
-                    role = ChatRole.User,
-                    content = whoamiResponse.hint
+                    role = ChatRole.User, content = whoamiResponse.hint
                 ),
             )
             val chatCompletionRequest = ChatCompletionRequest(
-                model = ModelId("gpt-3.5-turbo"),
-                messages = messages
+                model = ModelId("gpt-3.5-turbo"), messages = messages
             )
             chatCompletion = openAI.chatCompletion(chatCompletionRequest)
             messages.add(chatCompletion.choices[0].message)
 
         } while (chatCompletion.choices[0].message.content?.lowercase() == "more info please")
-        val answerRequest =
-            AnswerRequest.Whoami(chatCompletion.choices[0].message.content!!)
+        val answerRequest = AnswerRequest.Whoami(chatCompletion.choices[0].message.content!!)
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(authResponse.token, answerRequest),
@@ -424,17 +445,14 @@ class TaskSolverService(
     }
 
     private suspend fun solveScraper(
-        token: String,
-        task: Task,
-        scraperResponse: TaskResponses.ScraperResponse
+        token: String, task: Task, scraperResponse: TaskResponses.ScraperResponse
     ): SolvingData {
         var textToAnalyze = ""
         textToAnalyze = fileDownloader.downloadText(scraperResponse.input)
 
 
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = """Twoje zadanie to odpowiadać na pytania na podstawie poniższego tekstu
@@ -443,18 +461,15 @@ class TaskSolverService(
                         |
                         | $textToAnalyze
                     """.trimMargin()
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = scraperResponse.question
+                ), ChatMessage(
+                    role = ChatRole.User, content = scraperResponse.question
                 )
             )
         )
         val chatCompletion = openAI.chatCompletion(chatCompletionRequest)
 
 
-        val answerRequest =
-            AnswerRequest.Scraper(chatCompletion.choices[0].message.content ?: "")
+        val answerRequest = AnswerRequest.Scraper(chatCompletion.choices[0].message.content ?: "")
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),
@@ -462,13 +477,10 @@ class TaskSolverService(
     }
 
     private suspend fun solveRodo(
-        token: String,
-        task: Task,
-        rodoResponse: TaskResponses.RodoResponse
+        token: String, task: Task, rodoResponse: TaskResponses.RodoResponse
     ): SolvingData {
-        val answerRequest =
-            AnswerRequest.Rodo(
-                """Your role is to anonymize data. You only return anonymized version of user input, nothing else.
+        val answerRequest = AnswerRequest.Rodo(
+            """Your role is to anonymize data. You only return anonymized version of user input, nothing else.
                         | You anonymize key informations like name,surname,city, profession, country
                         | Use given placeholders for data to anonymize input:
                         | name - %imie%
@@ -480,7 +492,7 @@ class TaskSolverService(
                         | 
                         | Do not analyze user input, only replace sensitive informations with given placeholders.
                         | Note that some proffesions might contain more than one word.""".trimMargin()
-            )
+        )
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),
@@ -488,16 +500,13 @@ class TaskSolverService(
     }
 
     private suspend fun solveFunctions(
-        token: String,
-        task: Task,
-        functionsResponse: TaskResponses.FunctionsResponse
+        token: String, task: Task, functionsResponse: TaskResponses.FunctionsResponse
     ): SolvingData {
         val request = chatCompletionRequest {
             model = ModelId("gpt-3.5-turbo")
             messages = mutableListOf(
                 ChatMessage(
-                    role = ChatRole.User,
-                    content = ""
+                    role = ChatRole.User, content = ""
                 )
             )
             tools {
@@ -531,8 +540,7 @@ class TaskSolverService(
         }
         val tool: FunctionTool? = request.tools?.getOrNull(0)?.function
         tool?.let {
-            val answerRequest =
-                AnswerRequest.Functions(it)
+            val answerRequest = AnswerRequest.Functions(it)
             return SolvingData(
                 answerRequest,
                 aiDevs2Service.answer(token, answerRequest),
@@ -543,26 +551,20 @@ class TaskSolverService(
     }
 
     private suspend fun solveWhisper(
-        token: String,
-        task: Task,
-        whisperResponse: TaskResponses.WhisperResponse
+        token: String, task: Task, whisperResponse: TaskResponses.WhisperResponse
     ): SolvingData {
         val chatCompletionRequestUrl = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = "You find urls in given sentences. Respond only with found url"
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = whisperResponse.msg
+                ), ChatMessage(
+                    role = ChatRole.User, content = whisperResponse.msg
                 )
             )
         )
         val chatCompletionUrl = openAI.chatCompletion(chatCompletionRequestUrl)
-        val url = chatCompletionUrl.choices.getOrNull(0)?.message?.content
-            ?: "no urls was found"
+        val url = chatCompletionUrl.choices.getOrNull(0)?.message?.content ?: "no urls was found"
 
 
         val downloadedFile = fileDownloader.downloadFile(url)
@@ -577,8 +579,7 @@ class TaskSolverService(
         val transcription = openAI.transcription(transcriptionRequest)
 
 
-        val answerRequest =
-            AnswerRequest.Whisper(transcription.text)
+        val answerRequest = AnswerRequest.Whisper(transcription.text)
         return SolvingData(
             answerRequest,
             aiDevs2Service.answer(token, answerRequest),
@@ -587,13 +588,10 @@ class TaskSolverService(
     }
 
     private suspend fun solveEmbedding(
-        token: String,
-        task: Task,
-        embeddingResponse: TaskResponses.EmbeddingResponse
+        token: String, task: Task, embeddingResponse: TaskResponses.EmbeddingResponse
     ): SolvingData {
         val embeddingRequest = EmbeddingRequest(
-            model = ModelId("text-embedding-ada-002"),
-            input = listOf("Hawaiian pizza")
+            model = ModelId("text-embedding-ada-002"), input = listOf("Hawaiian pizza")
         )
         val embeddings = openAI.embeddings(embeddingRequest)
 
@@ -607,33 +605,25 @@ class TaskSolverService(
     }
 
     private suspend fun solveInprompt(
-        token: String,
-        task: Task,
-        inpromptResponse: TaskResponses.InpromptResponse
+        token: String, task: Task, inpromptResponse: TaskResponses.InpromptResponse
     ): SolvingData {
         val chatCompletionRequestName = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = "You find names in given sentences. Respond only with found name"
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = inpromptResponse.question
+                ), ChatMessage(
+                    role = ChatRole.User, content = inpromptResponse.question
                 )
             )
         )
         val chatCompletionName = openAI.chatCompletion(chatCompletionRequestName)
-        val name =
-            chatCompletionName.choices.getOrNull(0)?.message?.content
-                ?: "no names was found"
+        val name = chatCompletionName.choices.getOrNull(0)?.message?.content ?: "no names was found"
 
         val filteredFacts = inpromptResponse.input.filter { it.contains(name) }
 
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = "You answer questions based on given facts\n ######## \n ${
@@ -641,10 +631,8 @@ class TaskSolverService(
                             separator = "\n"
                         )
                     }"
-                ),
-                ChatMessage(
-                    role = ChatRole.User,
-                    content = inpromptResponse.question
+                ), ChatMessage(
+                    role = ChatRole.User, content = inpromptResponse.question
                 )
             )
         )
@@ -671,17 +659,14 @@ class TaskSolverService(
         taskPayload: ExtraTaskPayload.Liar
     ): SolvingData {
         val liarResponseForQuestion = aiDevs2Service.getTask<TaskResponses.LiarResponseForQuestion>(
-            token,
-            taskPayload.question
+            token, taskPayload.question
         )
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("gpt-3.5-turbo"),
-            messages = listOf(
+            model = ModelId("gpt-3.5-turbo"), messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
                     content = "You are judge that verifies if the given answer corresponds to the given question"
-                ),
-                ChatMessage(
+                ), ChatMessage(
                     role = ChatRole.User,
                     content = "Return only YES or NO whenever question: \n ${taskPayload.question} \n matches given answer: \n ${liarResponseForQuestion.answer}"
                 )
@@ -698,21 +683,16 @@ class TaskSolverService(
     }
 
     private suspend fun solveBlogger(
-        token: String,
-        task: Task,
-        taskResponse: TaskResponses.BloggerResponse
+        token: String, task: Task, taskResponse: TaskResponses.BloggerResponse
     ): SolvingData {
         val answers = taskResponse.blog.map {
             val chatCompletionRequest = ChatCompletionRequest(
-                model = ModelId("gpt-3.5-turbo"),
-                messages = listOf(
+                model = ModelId("gpt-3.5-turbo"), messages = listOf(
                     ChatMessage(
                         role = ChatRole.System,
                         content = "You are pizza maker blogger. Write blog posts based on its titles"
-                    ),
-                    ChatMessage(
-                        role = ChatRole.User,
-                        content = it
+                    ), ChatMessage(
+                        role = ChatRole.User, content = it
                     )
                 )
             )
@@ -723,8 +703,7 @@ class TaskSolverService(
     }
 
     private suspend fun solveModeration(
-        token: String,
-        taskResponse: TaskResponses.ModerationResponse
+        token: String, taskResponse: TaskResponses.ModerationResponse
     ): SolvingData {
         val moderationRequest = moderationRequest {
             input = taskResponse.input
@@ -744,8 +723,7 @@ class TaskSolverService(
     }
 
     private suspend fun solveHelloApi(
-        token: String,
-        taskResponse: TaskResponses.HelloApiResponse
+        token: String, taskResponse: TaskResponses.HelloApiResponse
     ): SolvingData {
         val answerRequest = AnswerRequest.HelloApi(taskResponse.cookie)
         return SolvingData(answerRequest, aiDevs2Service.answer(token, answerRequest))
@@ -753,14 +731,12 @@ class TaskSolverService(
 }
 
 sealed interface ExtraTaskPayload {
-    data class Liar(val question: String) :
-        ExtraTaskPayload
+    data class Liar(val question: String) : ExtraTaskPayload
 }
 
 sealed interface IntermediateData {
     data class LiarIntermediateData(
-        val question: String,
-        val answer: TaskResponses.LiarResponseForQuestion
+        val question: String, val answer: TaskResponses.LiarResponseForQuestion
     ) : IntermediateData
 
     data class InpromptIntermediateData(

@@ -1,7 +1,7 @@
 package service
 
-import api.model.unknow.people.PersonWithMetadata
-import api.model.unknow.search.UnknowNewsWithMetadata
+import api.aidevs.model.unknow.people.PersonWithMetadata
+import api.aidevs.model.unknow.search.UnknowNewsWithMetadata
 import io.qdrant.client.PointIdFactory.id
 import io.qdrant.client.QdrantClient
 import io.qdrant.client.ValueFactory.value

@@ -1,7 +1,8 @@
 package di
 
 import OPEN_AI_KEY
-import api.AiDevs2Api
+import api.aidevs.AiDevs2Api
+import api.renderform.RenderfromApi
 import com.aallam.openai.api.http.Timeout
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
@@ -27,12 +28,14 @@ import screens.auth.AuthScreenModel
 import screens.task.TaskScreenModel
 import service.AiDevs2Service
 import service.FileDownloader
+import service.RenderFormService
 import service.TaskSolverService
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 private const val AI_DEVS_API = "AiDevsApi"
 private const val FILE_DOWNLOADER_CLIENT = "FileDownloaderClient"
+private const val RENDER_FORM_CLIENT = "RenderFormClient"
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =
     startKoin {
         appDeclaration()
@@ -58,6 +61,7 @@ val viewModelModule = module {
 val servicesModule = module {
     singleOf(::AiDevs2Service)
     singleOf(::TaskSolverService)
+    singleOf(::RenderFormService)
 }
 
 val apiModule = module {
@@ -75,8 +79,19 @@ val apiModule = module {
         )
     }
     single {
-        FileDownloader(get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)), get(), get(qualifier = StringQualifier(
-            AI_DEVS_API)))
+        FileDownloader(
+            get(qualifier = StringQualifier(FILE_DOWNLOADER_CLIENT)), get(), get(
+                qualifier = StringQualifier(
+                    AI_DEVS_API
+                )
+            )
+        )
+    }
+    single {
+        RenderfromApi(
+            get(qualifier = StringQualifier(RENDER_FORM_CLIENT)),
+            get(qualifier = StringQualifier(RENDER_FORM_CLIENT))
+        )
     }
 }
 val ktorModule = module {
@@ -130,6 +145,26 @@ val ktorModule = module {
             }
         }
     }
+
+    single(qualifier = StringQualifier(RENDER_FORM_CLIENT)) {
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 1000 * 60 * 2
+            }
+            install(ContentNegotiation) { json(get()) }
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        Napier.d(tag = "Renderform", message = message)
+                    }
+                }
+                level = LogLevel.ALL
+            }
+        }
+    }
+    single(qualifier = StringQualifier(RENDER_FORM_CLIENT)) { "https://api.renderform.io" }
+
+
 }
 val openAiClientModule = module {
     single {

@@ -1,10 +1,10 @@
-package api
+package api.aidevs
 
-import api.model.answer.AnswerRequest
-import api.model.answer.AnswerResponse
-import api.model.auth.AuthRequest
-import api.model.auth.AuthResponse
-import api.model.task.TaskResponses
+import api.aidevs.model.answer.AnswerRequest
+import api.aidevs.model.answer.AnswerResponse
+import api.aidevs.model.auth.AuthRequest
+import api.aidevs.model.auth.AuthResponse
+import api.aidevs.model.task.TaskResponses
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.forms.submitForm

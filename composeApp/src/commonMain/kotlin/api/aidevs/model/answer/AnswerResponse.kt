@@ -1,4 +1,4 @@
-package api.model.answer
+package api.aidevs.model.answer
 
 
 import kotlinx.serialization.SerialName

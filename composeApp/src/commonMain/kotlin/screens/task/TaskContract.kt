@@ -1,7 +1,7 @@
 package screens.task
 
 import Task
-import api.model.task.TaskResponses
+import api.aidevs.model.task.TaskResponses
 import util.mvi.UiEffect
 import util.mvi.UiEvent
 import util.mvi.UiState

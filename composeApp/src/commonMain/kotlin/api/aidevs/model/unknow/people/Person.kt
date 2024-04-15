@@ -1,4 +1,4 @@
-package api.model.unknow.people
+package api.aidevs.model.unknow.people
 
 
 import kotlinx.serialization.SerialName

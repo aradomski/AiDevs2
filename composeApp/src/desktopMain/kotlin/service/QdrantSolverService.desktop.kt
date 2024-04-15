@@ -1,7 +1,7 @@
 package service
 
-import api.model.unknow.people.PersonWithMetadata
-import api.model.unknow.search.UnknowNewsWithMetadata
+import api.aidevs.model.unknow.people.PersonWithMetadata
+import api.aidevs.model.unknow.search.UnknowNewsWithMetadata
 
 actual interface QdrantSolverService {
     actual suspend fun createCollection(collectionName: String): Boolean

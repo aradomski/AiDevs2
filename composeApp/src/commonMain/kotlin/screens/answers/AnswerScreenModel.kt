@@ -1,7 +1,7 @@
 package screens.answers
 
 import Task
-import api.model.task.TaskResponses
+import api.aidevs.model.task.TaskResponses
 import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.launch
 import service.ExtraTaskPayload

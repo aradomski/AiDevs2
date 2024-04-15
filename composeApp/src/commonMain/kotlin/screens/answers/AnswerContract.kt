@@ -1,9 +1,9 @@
 package screens.answers
 
 import Task
-import api.model.answer.AnswerRequest
-import api.model.answer.AnswerResponse
-import api.model.task.TaskResponses
+import api.aidevs.model.answer.AnswerRequest
+import api.aidevs.model.answer.AnswerResponse
+import api.aidevs.model.task.TaskResponses
 import service.IntermediateData
 import util.mvi.UiEffect
 import util.mvi.UiEvent

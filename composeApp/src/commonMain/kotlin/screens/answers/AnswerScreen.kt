@@ -4,7 +4,7 @@ import Task
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import api.model.task.TaskResponses
+import api.aidevs.model.task.TaskResponses
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.getScreenModel
 import org.koin.core.parameter.parameterArrayOf

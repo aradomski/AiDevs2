@@ -1,7 +1,7 @@
 package screens.auth
 
 import Task
-import api.model.auth.AuthRequest
+import api.aidevs.model.auth.AuthRequest
 import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

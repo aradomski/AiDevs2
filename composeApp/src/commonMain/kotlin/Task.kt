@@ -14,4 +14,8 @@ enum class Task(val taskName: String) {
     PEOPLE("people"),
     KNOWLEDGE("knowledge"),
     TOOLS("tools"),
+    GNOME("gnome"),
+    OWNAPI("ownapi"),
+    OWNAPIPRO("ownapipro"),
+    MEME("meme"),
 }

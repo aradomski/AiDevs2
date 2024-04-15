@@ -21,8 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import api.model.answer.AnswerRequest
-import api.model.answer.AnswerResponse
+import api.aidevs.model.answer.AnswerRequest
+import api.aidevs.model.answer.AnswerResponse
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow

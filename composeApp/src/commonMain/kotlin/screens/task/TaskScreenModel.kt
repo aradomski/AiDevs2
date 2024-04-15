@@ -1,7 +1,7 @@
 package screens.task
 
 import Task
-import api.model.task.TaskResponses
+import api.aidevs.model.task.TaskResponses
 import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.launch
 import service.AiDevs2Service
@@ -39,6 +39,10 @@ class TaskScreenModel(
                         Task.PEOPLE -> getTaskContent<TaskResponses.PeopleResponse>()
                         Task.KNOWLEDGE -> getTaskContent<TaskResponses.KnowledgeResponse>()
                         Task.TOOLS -> getTaskContent<TaskResponses.ToolsResponse>()
+                        Task.GNOME -> getTaskContent<TaskResponses.GnomeResponse>()
+                        Task.OWNAPI -> getTaskContent<TaskResponses.OwnApiResponse>()
+                        Task.OWNAPIPRO -> getTaskContent<TaskResponses.OwnApiResponse>()
+                        Task.MEME -> getTaskContent<TaskResponses.MemeResponse>()
                     }
                 }
             }

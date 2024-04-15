@@ -1,4 +1,4 @@
-package api.model.answer
+package api.aidevs.model.answer
 
 import com.aallam.openai.api.chat.FunctionTool
 import kotlinx.serialization.SerialName
@@ -101,7 +101,23 @@ sealed class AnswerRequest {
         @SerialName("desc")
         val desc: String,
     ) : ToolAnswer
+    @Serializable
+    data class Gnome(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
 
+    @Serializable
+    data class OwnApi(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
+
+    @Serializable
+    data class Meme(
+        @SerialName("answer")
+        val answer: String
+    ) : AnswerRequest()
 }
 
 

@@ -1,11 +1,11 @@
-package api.model.unknow.search
+package api.aidevs.model.unknow.search
 
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UnknowNews(
+data class UnknowNewsWithMetadata(
     @SerialName("date")
     val date: String,
     @SerialName("info")
@@ -13,5 +13,11 @@ data class UnknowNews(
     @SerialName("title")
     val title: String,
     @SerialName("url")
-    val url: String
+    val url: String,
+    @SerialName("uuid")
+    val uuid: Int,
+    @SerialName("source")
+    val source: String,
+    @SerialName("vector")
+    val vector: List<Double>,
 )

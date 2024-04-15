@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import api.model.task.TaskResponses
+import api.aidevs.model.task.TaskResponses
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import composables.AiDevsAppBar
@@ -107,11 +107,29 @@ fun TaskContent(
                         is TaskResponses.PeopleResponse -> People(state, state.taskContent)
                         is TaskResponses.KnowledgeResponse -> Knowledge(state, state.taskContent)
                         is TaskResponses.ToolsResponse -> Tools(state, state.taskContent)
+                        is TaskResponses.GnomeResponse -> Gnome(state, state.taskContent)
+                        is TaskResponses.OwnApiResponse -> OwnApi(state, state.taskContent)
+                        is TaskResponses.MemeResponse -> Meme(state, state.taskContent)
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Meme(state: TaskContract.State, taskContent: TaskResponses.MemeResponse) {
+    Text("$taskContent")
+}
+
+@Composable
+fun OwnApi(state: TaskContract.State, taskContent: TaskResponses.OwnApiResponse) {
+    Text("$taskContent")
+}
+
+@Composable
+fun Gnome(state: TaskContract.State, taskContent: TaskResponses.GnomeResponse) {
+    Text("$taskContent")
 }
 
 @Composable

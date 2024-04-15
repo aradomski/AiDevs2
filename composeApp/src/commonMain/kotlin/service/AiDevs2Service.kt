@@ -1,9 +1,9 @@
 package service
 
-import api.AiDevs2Api
-import api.model.answer.AnswerRequest
-import api.model.auth.AuthRequest
-import api.model.task.TaskResponses
+import api.aidevs.AiDevs2Api
+import api.aidevs.model.answer.AnswerRequest
+import api.aidevs.model.auth.AuthRequest
+import api.aidevs.model.task.TaskResponses
 
 
 class AiDevs2Service(val aiDevs2Api: AiDevs2Api) {
